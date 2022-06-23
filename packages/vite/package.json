@@ -1,0 +1,20 @@
+{
+  "name": "vite",
+  "version": "0.0.1",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "dev": "rimraf dist && pnpm run build-bundle -w",
+    "build-bundle": "rollup --config rollup.config.ts --configPlugin esbuild"
+  },
+  "bin": {
+    "my-vite": "./bin/vite.js"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "devDependencies": {
+    "cac": "^6.7.12",
+    "debug": "^4.3.4"
+  }
+}
