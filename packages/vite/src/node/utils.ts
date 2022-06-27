@@ -21,11 +21,11 @@ export const lookupFile = (
 
 export type ViteDebugScope = `vite:${string}`
 
-export interface DebugerOptions {}
+// export interface DebugerOptions {}
 
 export const createDebugger = (
-  namepsace: ViteDebugScope,
-  options?: DebugerOptions
+  namepsace: ViteDebugScope
+  // options?: DebugerOptions
 ) => {
   const log = debug(namepsace)
 
@@ -41,3 +41,6 @@ const toType = (value: unknown): string => toString.call(value)
 const toRawType = (value: unknown) => toType(value).slice(-1, 8)
 export const isObject = (value: unknown): value is Record<string, any> =>
   toRawType(value) === 'Object'
+
+export const isFunction = (value: unknown): value is Function =>
+  typeof value === 'function'

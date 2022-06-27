@@ -1,10 +1,19 @@
 import fs from 'fs'
 import path from 'path'
 import { build } from 'esbuild'
-import { lookupFile, createDebugger, isFunction, isObject } from './utils'
+import { lookupFile, createDebugger, isObject, isFunction } from './utils'
+import { Plugin } from './plugin'
 
 export interface UserConfig {
+  /**
+   * 根路径
+   */
   root?: string
+
+  /**
+   * 插件
+   */
+  plugins?: Plugin[]
 }
 
 export interface InlineConfig extends UserConfig {
@@ -44,9 +53,32 @@ export const resolveConfig = (config: InlineConfig, command: Command) => {
 
   const { configFile } = config
   if (configFile !== false) {
-    loadConfigFromFile(configEnv, config.root, config.configFile)
+    loadConfigFromFile(
+      configEnv,
+      config.root,
+      config.configFile as string | undefined
+    )
     configFile
   }
+
+  /**
+   * 根据插件 apply 解析需要执行的插件
+   */
+  const rawUserPlugins = config.plugins?.flat(Infinity) ?? []
+  rawUserPlugins.filter(plugin => {
+    if (!plugin) {
+      return false
+    }
+    if (!plugin.apply) {
+      return false
+    }
+    if (isFunction(plugin.apply)) {
+      return plugin.apply(config, configEnv)
+    }
+    if (plugin.apply) {
+      return plugin.apply === command
+    }
+  })
 }
 
 /**
@@ -67,7 +99,9 @@ const loadConfigFromFile = async (
     if (pkg && JSON.parse(pkg).type === 'module') {
       isESM = true
     }
-  } catch (e) {}
+  } catch (e) {
+    console.error(e)
+  }
 
   // 2. 解析配置文件路径
   if (configFile) {
@@ -110,20 +144,24 @@ const loadConfigFromFile = async (
       }
     }
   }
-  console.log('resolvedPath: ', resolvedPath, isESM, isTS)
+
   if (!resolvedPath) {
     debug('not found config file.')
     return null
   }
 
+  // 3. 打包配置文件
   const bundle = await bundleConfigFile(resolvedPath, isESM)
+  // 4. 运行配置文件
   const userConfig: UserConfigExport = loadConfigFromBundledFile(
     resolvedPath,
     bundle.code
   )
 
-  const config =
-    typeof userConfig === 'function' ? await userConfig(configEnv) : userConfig
+  // 5. 检测配置文件运行结果
+  const config = isFunction(userConfig)
+    ? await userConfig(configEnv)
+    : userConfig
 
   if (!isObject(config)) {
     throw new Error('config must export or return an object.')
