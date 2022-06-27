@@ -1,0 +1,5 @@
+{
+  "*": ["prettier --write --cache --ignore-unknown"],
+  "packages/*/{src,types}/**/*.ts": ["eslint --cache --fix"],
+  "packages/**/*.d.ts": ["eslint --cache --fix"]
+}
