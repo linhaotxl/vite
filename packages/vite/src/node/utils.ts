@@ -1,6 +1,9 @@
 import fs from 'fs'
 import path from 'path'
 import debug from 'debug'
+import os from 'os'
+
+const isWindows = os.platform() === 'win32'
 
 interface LookupFileOptions {
   pathOnly?: boolean
@@ -33,7 +36,7 @@ export const createDebugger = (
     log(message, ...args)
   }
 }
-
+process
 export const dynamicImport = (file: string) => import(file)
 
 const toString = Object.prototype.toString
@@ -44,3 +47,11 @@ export const isObject = (value: unknown): value is Record<string, any> =>
 
 export const isFunction = (value: unknown): value is Function =>
   typeof value === 'function'
+
+export const arraify = <T>(value: T | T[]): T[] =>
+  Array.isArray(value) ? value : [value]
+
+export const slash = (p: string) => p.replace(/\\/g, '/')
+
+export const normalizePath = (p: string) =>
+  path.posix.normalize(isWindows ? slash(p) : p)

@@ -1,8 +1,15 @@
 import fs from 'fs'
-import path from 'path'
+import path, { resolve } from 'path'
 import { build } from 'esbuild'
-import { lookupFile, createDebugger, isObject, isFunction } from './utils'
+import {
+  lookupFile,
+  createDebugger,
+  isObject,
+  isFunction,
+  normalizePath,
+} from './utils'
 import { Plugin } from './plugin'
+import { loadEnv } from './env'
 
 export interface UserConfig {
   /**
@@ -14,10 +21,25 @@ export interface UserConfig {
    * 插件
    */
   plugins?: Plugin[]
+
+  /**
+   * 环境变量前缀，只有满足前缀的环境变量才会被加入到客户端，通过 import.meta.env 访问到
+   * @default 'VITE_'
+   */
+  envPrefix?: string | string[]
+
+  /**
+   * 环境变量文件所在目录
+   */
+  envDir?: string
 }
 
 export interface InlineConfig extends UserConfig {
   configFile?: string | false
+}
+
+export type ResolvedConfig = Readonly<UserConfig> & {
+  env: Record<string, string>
 }
 
 export type Command = 'build' | 'serve'
@@ -43,13 +65,19 @@ const debug = createDebugger('vite:config')
  * @param config
  * @param cammand
  */
-export const resolveConfig = (config: InlineConfig, command: Command) => {
+export const resolveConfig = (
+  config: InlineConfig,
+  command: Command,
+  mode = 'development'
+) => {
   const configEnv: ConfigEnv = {
     command,
-    mode: '',
+    mode,
   }
 
   config.root = config.root || process.cwd()
+
+  const resolveRoot = normalizePath(config.root)
 
   const { configFile } = config
   if (configFile !== false) {
@@ -61,24 +89,41 @@ export const resolveConfig = (config: InlineConfig, command: Command) => {
     configFile
   }
 
-  /**
-   * 根据插件 apply 解析需要执行的插件
-   */
-  const rawUserPlugins = config.plugins?.flat(Infinity) ?? []
-  rawUserPlugins.filter(plugin => {
-    if (!plugin) {
-      return false
+  // 根据插件 apply 解析需要执行的插件
+  const rawUserPlugins = (config.plugins?.flat(Infinity) ?? []).filter(
+    plugin => {
+      if (!plugin) {
+        return false
+      }
+      if (!plugin.apply) {
+        return false
+      }
+      if (isFunction(plugin.apply)) {
+        return plugin.apply(config, configEnv)
+      }
+      if (plugin.apply) {
+        return plugin.apply === command
+      }
     }
-    if (!plugin.apply) {
-      return false
-    }
-    if (isFunction(plugin.apply)) {
-      return plugin.apply(config, configEnv)
-    }
-    if (plugin.apply) {
-      return plugin.apply === command
-    }
-  })
+  )
+
+  // 获取各个时机执行的插件
+  const [prePlugins, normalPlugins, postPlugins] =
+    sortUserPlugins(rawUserPlugins)
+
+  // 加载 env
+  const envDir = config.envDir ? normalizePath(config.envDir) : resolveRoot
+  const loadedEnv = loadEnv(mode, envDir, config.envPrefix)
+
+  const resolved: ResolvedConfig = {
+    root: resolveRoot,
+    plugins: [],
+    env: {
+      ...loadedEnv,
+    },
+  }
+  console.log('resolved: ', resolved)
+  return resolved
 }
 
 /**
@@ -208,4 +253,25 @@ const loadConfigFromBundledFile = (file: string, code: string) => {
 
   const raw = require(file)
   return raw.__esModule ? raw.default : raw
+}
+
+/**
+ * 根据插件的执行时机排序
+ */
+const sortUserPlugins = (plugins: Plugin[]) => {
+  const prePlugins: Plugin[] = []
+  const normalPlugins: Plugin[] = []
+  const postPlugins: Plugin[] = []
+
+  plugins.forEach(plugin => {
+    if (plugin.enforce === 'pre') {
+      prePlugins.push(plugin)
+    } else if (plugin.enforce === 'post') {
+      postPlugins.push(plugin)
+    } else {
+      normalPlugins.push(plugin)
+    }
+  })
+
+  return [prePlugins, normalPlugins, postPlugins]
 }
