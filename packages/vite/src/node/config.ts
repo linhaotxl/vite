@@ -10,12 +10,23 @@ import {
 } from './utils'
 import { Plugin } from './plugin'
 import { loadEnv } from './env'
+import {
+  ResolvedServerOptions,
+  resolveServerOptions,
+  ServerOptions,
+} from './server'
+import { createLogger, Logger, LogLevel } from './logger'
 
 export interface UserConfig {
   /**
    * 根路径
    */
   root?: string
+
+  /**
+   * 执行环境
+   */
+  mode?: string
 
   /**
    * 插件
@@ -32,6 +43,23 @@ export interface UserConfig {
    * 环境变量文件所在目录
    */
   envDir?: string
+
+  /**
+   * 日志级别
+   * @default 'info'
+   */
+  logLevel?: LogLevel
+
+  /**
+   * 输出日志是否允许清屏
+   * @default true
+   */
+  clearScreen?: boolean
+
+  /**
+   * 服务器 server 配置
+   */
+  server?: ServerOptions
 }
 
 export interface InlineConfig extends UserConfig {
@@ -39,7 +67,12 @@ export interface InlineConfig extends UserConfig {
 }
 
 export type ResolvedConfig = Readonly<UserConfig> & {
+  root: string
   env: Record<string, string>
+
+  logger: Logger
+
+  server: ResolvedServerOptions
 }
 
 export type Command = 'build' | 'serve'
@@ -68,8 +101,10 @@ const debug = createDebugger('vite:config')
 export const resolveConfig = (
   config: InlineConfig,
   command: Command,
-  mode = 'development'
+  defaultMode = 'development'
 ) => {
+  const mode = config.mode || defaultMode
+
   const configEnv: ConfigEnv = {
     command,
     mode,
@@ -88,6 +123,14 @@ export const resolveConfig = (
     )
     configFile
   }
+
+  // 创建日志
+  const logger = createLogger(config.logLevel, {
+    allowClearScreen: config.clearScreen,
+  })
+
+  // 解析服务器配置
+  const server = resolveServerOptions(resolveRoot, config.server, logger)
 
   // 根据插件 apply 解析需要执行的插件
   const rawUserPlugins = (config.plugins?.flat(Infinity) ?? []).filter(
@@ -121,8 +164,11 @@ export const resolveConfig = (
     env: {
       ...loadedEnv,
     },
+    logger,
+
+    server,
   }
-  console.log('resolved: ', resolved)
+
   return resolved
 }
 

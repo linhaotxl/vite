@@ -51,8 +51,11 @@ let lastMsg = ''
 let lastLogType: LogType
 let sameCount = 0
 
-export const createLogger = (level: LogLevel, options: LoggerOptions = {}) => {
-  const { prefix = '[vite]', allowClearScreen } = options
+export const createLogger = (
+  level: LogLevel = 'info',
+  options: LoggerOptions = {}
+) => {
+  const { prefix = '[vite]', allowClearScreen = true } = options
   const canClearScreen = !!allowClearScreen
 
   // 日志等级
