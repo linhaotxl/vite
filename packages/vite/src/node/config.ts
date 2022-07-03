@@ -73,6 +73,8 @@ export type ResolvedConfig = Readonly<UserConfig> & {
   logger: Logger
 
   server: ResolvedServerOptions
+
+  plugins: Plugin[]
 }
 
 export type Command = 'build' | 'serve'

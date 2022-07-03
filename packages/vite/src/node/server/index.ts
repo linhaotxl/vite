@@ -1,3 +1,4 @@
+import { createDevHtmlTransformFn } from './../middlewares/indexHtml'
 import connect from 'connect'
 import type { Server as HttpServer } from 'node:http'
 import { resolveConfig } from '../config'
@@ -8,6 +9,7 @@ import {
   resolveHttpServer,
 } from '../http'
 import type { Logger } from '../logger'
+import { indexHtmlMiddleware } from '../middlewares/indexHtml'
 
 /**
  * vite 服务器选项
@@ -27,6 +29,11 @@ export interface ViteDevServer {
    * 监听端口
    */
   listen: (port?: number) => Promise<ViteDevServer>
+
+  /**
+   * 转换 html 内容的函数，用于 indexHtml 中间件
+   */
+  transformIndexHtml: (url: string, html: string) => Promise<string>
 }
 
 /**
@@ -82,7 +89,12 @@ export const createServer = async (inlineConfig: InlineConfig) => {
     listen(port) {
       return startServer(server, port)
     },
+    transformIndexHtml: null!,
   }
+
+  server.transformIndexHtml = createDevHtmlTransformFn(server)
+
+  middlewares.use(indexHtmlMiddleware(server))
 
   return server
 }
