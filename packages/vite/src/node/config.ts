@@ -16,6 +16,7 @@ import {
   ServerOptions,
 } from './server'
 import { createLogger, Logger, LogLevel } from './logger'
+import { resolvePlugins } from './plugins'
 
 export interface UserConfig {
   /**
@@ -170,6 +171,11 @@ export const resolveConfig = (
 
     server,
   }
+
+  // 创建内置插件列表
+  const plugins = resolvePlugins(resolved)
+
+  resolved.plugins = plugins
 
   return resolved
 }

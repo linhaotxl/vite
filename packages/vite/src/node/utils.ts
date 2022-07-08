@@ -55,6 +55,14 @@ export const isString = (value: unknown): value is string =>
 export const isBoolean = (value: unknown): value is boolean =>
   typeof value === 'boolean'
 
+export const isUndefined = (value: unknown): value is undefined =>
+  typeof value === 'undefined'
+
+export const isNull = (value: unknown): value is null => null === value
+
+export const isNil = (value: unknown): value is undefined | null | void =>
+  isUndefined(value) || isNull(value)
+
 export const isArray = Array.isArray
 
 export const arraify = <T>(value: T | T[]): T[] =>

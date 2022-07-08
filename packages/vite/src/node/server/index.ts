@@ -10,6 +10,9 @@ import {
 } from '../http'
 import type { Logger } from '../logger'
 import { indexHtmlMiddleware } from '../middlewares/indexHtml'
+import { createPluginContainer, PluginContainer } from './pluginContainer'
+import { transformMiddleware } from '../middlewares/transform'
+import { resolvePlugins } from '../plugins'
 
 /**
  * vite 服务器选项
@@ -34,6 +37,11 @@ export interface ViteDevServer {
    * 转换 html 内容的函数，用于 indexHtml 中间件
    */
   transformIndexHtml: (url: string, html: string) => Promise<string>
+
+  /**
+   * 插件容器
+   */
+  pluginContainer: PluginContainer
 }
 
 /**
@@ -68,7 +76,6 @@ export const resolveServerOptions = (
 export const createServer = async (inlineConfig: InlineConfig) => {
   // 1. 解析配置
   const config = resolveConfig(inlineConfig, 'serve', 'development')
-  console.log('resolve config: ', config)
 
   // 创建中间件服务
   const middlewares = connect()
@@ -83,9 +90,13 @@ export const createServer = async (inlineConfig: InlineConfig) => {
   // 创建 http 服务器
   const httpServer = await resolveHttpServer(serverOptions, middlewares)
 
+  // 创建插件容器
+  const pluginContainer = createPluginContainer(config)
+
   const server: ViteDevServer = {
     config,
     httpServer,
+    pluginContainer,
     listen(port) {
       return startServer(server, port)
     },
@@ -93,6 +104,8 @@ export const createServer = async (inlineConfig: InlineConfig) => {
   }
 
   server.transformIndexHtml = createDevHtmlTransformFn(server)
+
+  middlewares.use(transformMiddleware(server))
 
   middlewares.use(indexHtmlMiddleware(server))
 

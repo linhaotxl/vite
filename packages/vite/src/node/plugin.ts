@@ -1,7 +1,13 @@
-import { Command, ConfigEnv, UserConfig } from './config'
-import { IndexHtmlTransform } from './plugins/html'
+import type { Command, ConfigEnv, UserConfig } from './config'
+import type { IndexHtmlTransform } from './plugins/html'
+import type {
+  LoadResult,
+  ResolveIdResult,
+  Plugin as RollupPlugin,
+  TransformResult,
+} from 'rollup'
 
-export interface Plugin {
+export interface Plugin extends RollupPlugin {
   /**
    * 插件的执行时机
    *
@@ -18,4 +24,25 @@ export interface Plugin {
    * 每个插件可以存在转换 html 的钩子
    */
   indexTransform?: IndexHtmlTransform
+
+  /**
+   * 解析模块路径
+   */
+  resolveId?: (
+    id: string,
+    impoter?: string
+  ) => ResolveIdResult | Promise<ResolveIdResult>
+
+  /**
+   * 加载模块内容
+   */
+  load?: (id: string) => LoadResult | Promise<LoadResult>
+
+  /**
+   * 转换内容
+   */
+  transform?: (
+    code: string,
+    resolveId: string
+  ) => TransformResult | Promise<TransformResult>
 }
