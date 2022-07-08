@@ -5,7 +5,7 @@
   "main": "index.js",
   "scripts": {
     "dev": "rimraf dist && pnpm run build-bundle -w",
-    "build-bundle": "rollup --config rollup.config.ts --configPlugin esbuild"
+    "build-bundle": "rollup --config rollup.config.ts --configPlugin typescript"
   },
   "bin": {
     "my-vite": "./bin/vite.js"
@@ -21,7 +21,9 @@
     "dotenv-expand": "^8.0.3"
   },
   "dependencies": {
+    "@vue/compiler-dom": "^3.2.37",
     "connect": "^3.7.0",
+    "magic-string": "^0.26.2",
     "picocolors": "^1.0.0"
   }
 }
