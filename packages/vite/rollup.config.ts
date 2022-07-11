@@ -37,6 +37,8 @@ export default defineConfig({
 
     typescript({
       tsconfig: resolve('src/node/tsconfig.json'),
+      sourceMap: true,
+      inlineSourceMap: true,
     }),
 
     // esbuild({

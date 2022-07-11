@@ -15,15 +15,20 @@
   "license": "ISC",
   "devDependencies": {
     "@types/connect": "^3.4.35",
+    "@types/estree": "^0.0.52",
     "cac": "^6.7.12",
     "debug": "^4.3.4",
     "dotenv": "^16.0.1",
-    "dotenv-expand": "^8.0.3"
+    "dotenv-expand": "^8.0.3",
+    "types": "link:./types"
   },
   "dependencies": {
     "@vue/compiler-dom": "^3.2.37",
+    "acorn": "^8.7.1",
     "connect": "^3.7.0",
+    "fast-glob": "^3.2.11",
     "magic-string": "^0.26.2",
-    "picocolors": "^1.0.0"
+    "picocolors": "^1.0.0",
+    "ufo": "^0.8.5"
   }
 }

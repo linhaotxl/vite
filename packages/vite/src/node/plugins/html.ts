@@ -443,8 +443,9 @@ export const htmlInlineProxyPlugin = (config: ResolvedConfig): Plugin => {
         return
       }
       const index = +proxyMatch[1]
-      const url = cleanUrl(id)
+      const url = cleanUrl(id).replace(config.root, '')
       const cache = htmlProxyMap.get(config)?.get(url)
+
       if (!cache) {
         return
       }
