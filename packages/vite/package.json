@@ -23,6 +23,7 @@
     "types": "link:./types"
   },
   "dependencies": {
+    "@rollup/pluginutils": "^4.2.1",
     "@vue/compiler-dom": "^3.2.37",
     "acorn": "^8.7.1",
     "connect": "^3.7.0",

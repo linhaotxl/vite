@@ -17,6 +17,7 @@ import {
 } from './server'
 import { createLogger, Logger, LogLevel } from './logger'
 import { resolvePlugins } from './plugins'
+import { JsonOptions } from './plugins/json'
 
 export interface UserConfig {
   /**
@@ -61,6 +62,11 @@ export interface UserConfig {
    * 服务器 server 配置
    */
   server?: ServerOptions
+
+  /**
+   * 解析 JSON 文件配置
+   */
+  json?: JsonOptions
 }
 
 export interface InlineConfig extends UserConfig {
@@ -162,6 +168,7 @@ export const resolveConfig = (
   const loadedEnv = loadEnv(mode, envDir, config.envPrefix)
 
   const resolved: ResolvedConfig = {
+    ...config,
     root: resolveRoot,
     plugins: [],
     env: {
