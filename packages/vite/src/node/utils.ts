@@ -87,3 +87,30 @@ export const forEach = <T>(
     fn(arr[i], i, arr)
   }
 }
+
+/**
+ * 检测文件是否可读
+ */
+export const isFileReadable = (fileName: string) => {
+  const res = fs.existsSync(fileName)
+  return !!res
+}
+
+/**
+ * 检测是否是 js 请求
+ */
+const knownJsRequest = /\.(mjs|js|ts|jsx|tsx|vue)($|\?)/
+export const isJSRequest = (url: string) => {
+  url = cleanUrl(url)
+  // 已知后缀的 js 文件请求
+  if (knownJsRequest.test(url)) {
+    return true
+  }
+
+  // 没有后缀，且不是以 / 结尾也视为 js 请求
+  if (!path.extname(url) && !url.endsWith('/')) {
+    return true
+  }
+
+  return false
+}

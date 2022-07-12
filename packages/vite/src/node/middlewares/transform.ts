@@ -1,7 +1,17 @@
+import { promises as fs } from 'fs'
 import { NextHandleFunction } from 'connect'
 import { isHTMLProxy } from '../plugins/html'
 import { ViteDevServer } from '../server'
-import { isNull, isObject, isString } from '../utils'
+import {
+  createDebugger,
+  isJSRequest,
+  isNil,
+  isObject,
+  isString,
+} from '../utils'
+
+const isDebug = !!process.env.DEBUG
+const loadDebug = createDebugger('vite:load')
 
 export const transformMiddleware =
   (server: ViteDevServer): NextHandleFunction =>
@@ -10,16 +20,16 @@ export const transformMiddleware =
 
     const url = req.url!
 
-    if (isHTMLProxy(url)) {
+    if (isJSRequest(url) || isHTMLProxy(url)) {
       // 1. resolve
       const resolveId = (await pluginContainer.resolveId(url)) || url
       // 2. load
       const loadResult = await pluginContainer.load(resolveId)
-
       let code = ''
 
-      if (isNull(loadResult)) {
-        loadResult
+      if (isNil(loadResult)) {
+        code = await fs.readFile(resolveId, 'utf-8')
+        isDebug && loadDebug(`[fs] ${url}`)
       } else {
         if (isString(loadResult)) {
           code = loadResult
