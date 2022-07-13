@@ -2,6 +2,7 @@ import fs from 'fs'
 import path from 'path'
 import debug from 'debug'
 import os from 'os'
+import { URL } from 'node:url'
 
 const isWindows = os.platform() === 'win32'
 
@@ -114,3 +115,27 @@ export const isJSRequest = (url: string) => {
 
   return false
 }
+
+/**
+ * 向 url 中注入 query
+ */
+export const injectQuery = (url: string, inject: string) => {
+  const resolvedUrl = new URL(url, 'relative:///')
+  const { pathname, hash, search } = resolvedUrl
+
+  const resolveSearch = search ? `&${search.slice(1)}` : ''
+  const resolveHash = hash ? hash : ''
+  return `${pathname}?${inject}${resolveSearch}${resolveHash}`
+}
+
+/**
+ * 检测是否是 import 请求
+ */
+const importRequestRE = /(\?|&)import=?(?:$|&)/
+export const isImportRequest = (url: string) => importRequestRE.test(url)
+
+/**
+ * 移除 import query 参数
+ */
+export const removeImportQuery = (url: string) =>
+  url.replace(importRequestRE, '')

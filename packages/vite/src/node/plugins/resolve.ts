@@ -17,7 +17,7 @@ export const resolvePlugin = (config: ResolvedConfig): Plugin => {
   return {
     name: 'vite:resolve',
 
-    resolveId(id, impoter?) {
+    resolveId(id, importer?) {
       let res: string | undefined
 
       // 解析 URL；/foo -> /root/foo
@@ -31,7 +31,14 @@ export const resolvePlugin = (config: ResolvedConfig): Plugin => {
 
       // 解析相对路径
       if (id.startsWith('.')) {
-        console.log('relative: ', impoter)
+        const dir = path.dirname(importer!)
+        const relative = path.relative(dir, id)
+        const file = path.resolve(root, relative)
+        if ((res = tryFsResolve(file))) {
+          isDebug &&
+            debug(`[relative] ${colors.cyan(id)} -> ${colors.dim(res)}`)
+          return res
+        }
       }
     },
   }
@@ -42,25 +49,25 @@ const tryFsResolve = (
   tryIndex = true,
   skipPackageJson = true
 ) => {
-  const fileName = file
+  const { fileName, postfix } = splitFileAndPostfix(file)
 
   let res: string | undefined
 
   // 1. 直接解析 file
   if ((res = tryResolveFile(fileName, false, false))) {
-    return res
+    return res + postfix
   }
 
   // 2. 加入扩展名解析
   for (const ext of DEFAULT_EXTENSIONS) {
     if ((res = tryResolveFile(`${fileName}${ext}`, false, false))) {
-      return res
+      return res + postfix
     }
   }
 
   // 3. 解析 index
   if ((res = tryResolveFile(fileName, tryIndex, skipPackageJson))) {
-    return res
+    return res + postfix
   }
 }
 
@@ -90,4 +97,24 @@ export const tryResolveFile = (
       }
     }
   }
+}
+
+/**
+ * 切割文件名和查询条件
+ */
+export const splitFileAndPostfix = (file: string) => {
+  let fileName = file
+  let postfix = ''
+
+  let postfixIndex = file.indexOf('?')
+  if (postfixIndex === -1) {
+    postfixIndex = file.indexOf('#')
+  }
+
+  if (postfixIndex > -1) {
+    fileName = file.slice(0, postfixIndex)
+    postfix = file.slice(postfixIndex)
+  }
+
+  return { fileName, postfix }
 }

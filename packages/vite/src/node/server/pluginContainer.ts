@@ -1,12 +1,30 @@
-import { LoadResult, SourceDescription } from 'rollup'
+import type {
+  LoadResult,
+  SourceDescription,
+  PluginContext,
+  ModuleInfo,
+  ModuleOptions,
+  PartialNull,
+  CustomPluginOptions,
+  EmitFile,
+  AcornNode,
+  PartialResolvedId,
+  ResolvedId,
+  TransformPluginContext,
+} from 'rollup'
 import { ResolvedConfig } from '../config'
+import { Plugin } from '../plugin'
 import { isNil, isObject, isString } from '../utils'
 
 /**
  * 插件容器对象
  */
 export interface PluginContainer {
-  resolveId: (id: string, impoter?: string) => Promise<string | null>
+  resolveId: (
+    id: string,
+    impoter?: string,
+    options?: { skip?: Set<Plugin> }
+  ) => Promise<PartialResolvedId | null>
 
   load: (id: string) => Promise<LoadResult>
 
@@ -22,22 +40,51 @@ export interface PluginContainer {
 export const createPluginContainer = (config: ResolvedConfig) => {
   const { plugins } = config
 
+  class Context {
+    // _activePlugin: Plugin | undefined
+
+    async resolve(
+      source: string,
+      importer?: string | undefined,
+      options?:
+        | {
+            custom?: CustomPluginOptions | undefined
+            isEntry?: boolean | undefined
+            skipSelf?: boolean | undefined
+          }
+        | undefined
+    ) {
+      let skip: Set<Plugin> | undefined
+
+      return (await container.resolveId(source, importer, {
+        skip,
+      })) as ResolvedId | null
+    }
+  }
+
+  class TransformContext extends Context {}
+
   const container: PluginContainer = {
-    async resolveId(id, impoter?) {
-      let resolveId: string | null = null
+    async resolveId(id, impoter, options = {}) {
+      const ctx = new Context()
+      let resolveId: PartialResolvedId | null = null
 
       for (const plugin of plugins) {
         if (!plugin.resolveId) {
           continue
         }
+        if (options.skip?.has(plugin)) {
+          continue
+        }
 
-        const result = await plugin.resolveId(id, impoter)
+        // ctx._activePlugin = plugin
+        const result = await plugin.resolveId.call(ctx as any, id, impoter)
 
         if (result) {
           if (isString(result)) {
-            resolveId = result
+            resolveId = { id: result }
           } else if (isObject(result)) {
-            resolveId = result.id
+            resolveId = result
           }
 
           break
@@ -63,11 +110,13 @@ export const createPluginContainer = (config: ResolvedConfig) => {
     },
 
     async transform(code, resolveId) {
+      const ctx = new TransformContext()
+
       for (const plugin of plugins) {
         if (!plugin.transform) {
           continue
         }
-        const result = await plugin.transform(code, resolveId)
+        const result = await plugin.transform.call(ctx as any, code, resolveId)
 
         if (isObject(result)) {
           result.code && (code = result.code || code)

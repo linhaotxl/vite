@@ -5,6 +5,8 @@ import type {
   ResolveIdResult,
   Plugin as RollupPlugin,
   TransformResult,
+  PluginContext,
+  TransformPluginContext,
 } from 'rollup'
 
 export interface Plugin extends RollupPlugin {
@@ -29,6 +31,7 @@ export interface Plugin extends RollupPlugin {
    * 解析模块路径
    */
   resolveId?: (
+    this: PluginContext,
     id: string,
     impoter?: string
   ) => ResolveIdResult | Promise<ResolveIdResult>
@@ -42,6 +45,7 @@ export interface Plugin extends RollupPlugin {
    * 转换内容
    */
   transform?: (
+    this: TransformPluginContext,
     code: string,
     resolveId: string
   ) => TransformResult | Promise<TransformResult>
