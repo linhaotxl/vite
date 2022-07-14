@@ -5,6 +5,8 @@ import os from 'os'
 import resolve from 'resolve'
 import { URL } from 'node:url'
 import { DEFAULT_EXTENSIONS } from './constants'
+import { AliasOptions } from 'types/alias'
+import { Alias } from '@rollup/plugin-alias'
 
 const isWindows = os.platform() === 'win32'
 
@@ -160,3 +162,26 @@ export const resolveForm = (id: string, basedir: string) =>
   })
 
 export const bareImportRE = /^[@\w](.*)/
+
+/**
+ * 合并 alias 配置
+ */
+export const mergeAlias = (a: AliasOptions, b: AliasOptions): AliasOptions => {
+  if (isObject(a) && isObject(b)) {
+    return { ...a, ...b }
+  }
+  return [...normalizeAlias(b), ...normalizeAlias(a)]
+}
+
+/**
+ * 格式化 alias 配置
+ */
+export const normalizeAlias = (alias: AliasOptions): Alias[] => {
+  if (isArray(alias)) {
+    return alias
+  }
+  return Object.entries(alias).map(([find, replacement]) => ({
+    find,
+    replacement,
+  }))
+}

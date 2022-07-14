@@ -7,6 +7,7 @@ import type {
   TransformResult,
   PluginContext,
   TransformPluginContext,
+  ResolveIdHook,
 } from 'rollup'
 
 export interface Plugin extends RollupPlugin {
@@ -33,7 +34,8 @@ export interface Plugin extends RollupPlugin {
   resolveId?: (
     this: PluginContext,
     id: string,
-    impoter?: string
+    impoter: string | undefined,
+    options: Parameters<ResolveIdHook>[2]
   ) => ResolveIdResult | Promise<ResolveIdResult>
 
   /**

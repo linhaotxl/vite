@@ -7,6 +7,8 @@ import {
   isObject,
   isFunction,
   normalizePath,
+  mergeAlias,
+  normalizeAlias,
 } from './utils'
 import { Plugin } from './plugin'
 import { loadEnv } from './env'
@@ -18,6 +20,8 @@ import {
 import { createLogger, Logger, LogLevel } from './logger'
 import { resolvePlugins } from './plugins'
 import { JsonOptions } from './plugins/json'
+import { AliasOptions } from 'types/alias'
+import type { Alias } from '@rollup/plugin-alias'
 
 export interface UserConfig {
   /**
@@ -67,6 +71,11 @@ export interface UserConfig {
    * 解析 JSON 文件配置
    */
   json?: JsonOptions
+
+  /**
+   * 解析相关配置
+   */
+  resolve?: { alias: AliasOptions }
 }
 
 export interface InlineConfig extends UserConfig {
@@ -82,6 +91,8 @@ export type ResolvedConfig = Readonly<UserConfig> & {
   server: ResolvedServerOptions
 
   plugins: Plugin[]
+
+  resolve: { alias: Alias[] }
 }
 
 export type Command = 'build' | 'serve'
@@ -183,9 +194,11 @@ export const resolveConfig = async (
     logger,
 
     server,
-  }
 
-  console.log('resolved: ', resolved)
+    resolve: {
+      alias: normalizeAlias(config.resolve?.alias ?? []),
+    },
+  }
 
   // 创建内置插件列表
   const plugins = resolvePlugins(resolved)
@@ -299,6 +312,7 @@ const bundleConfigFile = async (file: string, isESM = false) => {
     format: isESM ? 'esm' : 'cjs',
     metafile: true,
     bundle: true,
+    platform: 'node',
   })
   console.log('结束打包')
 

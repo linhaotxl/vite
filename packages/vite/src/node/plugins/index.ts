@@ -5,9 +5,12 @@ import { importAnalysisPlugin } from './importAnalysis'
 import { importGlobPlugin } from './importMetaGlob'
 import { jsonPlugin } from './json'
 import { resolvePlugin } from './resolve'
+import aliasPlugin from '@rollup/plugin-alias'
 
 export const resolvePlugins = (config: ResolvedConfig): Plugin[] => {
   return [
+    aliasPlugin({ entries: config.resolve.alias }),
+
     resolvePlugin(config),
 
     jsonPlugin({
