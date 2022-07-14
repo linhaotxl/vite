@@ -107,7 +107,7 @@ const debug = createDebugger('vite:config')
  * @param config
  * @param cammand
  */
-export const resolveConfig = (
+export const resolveConfig = async (
   config: InlineConfig,
   command: Command,
   defaultMode = 'development'
@@ -125,12 +125,18 @@ export const resolveConfig = (
 
   const { configFile } = config
   if (configFile !== false) {
-    loadConfigFromFile(
+    const loadResult = await loadConfigFromFile(
       configEnv,
       config.root,
       config.configFile as string | undefined
     )
-    configFile
+
+    if (loadResult) {
+      config = {
+        ...config,
+        ...loadResult.config,
+      }
+    }
   }
 
   // 创建日志
@@ -178,6 +184,8 @@ export const resolveConfig = (
 
     server,
   }
+
+  console.log('resolved: ', resolved)
 
   // 创建内置插件列表
   const plugins = resolvePlugins(resolved)
@@ -255,7 +263,6 @@ const loadConfigFromFile = async (
     debug('not found config file.')
     return null
   }
-
   // 3. 打包配置文件
   const bundle = await bundleConfigFile(resolvedPath, isESM)
   // 4. 运行配置文件
@@ -270,7 +277,9 @@ const loadConfigFromFile = async (
     : userConfig
 
   if (!isObject(config)) {
-    throw new Error('config must export or return an object.')
+    throw new Error(
+      `config must export or return an object, but got ${typeof config}`
+    )
   }
 
   return {
@@ -283,6 +292,7 @@ const loadConfigFromFile = async (
  * 打包配置文件
  */
 const bundleConfigFile = async (file: string, isESM = false) => {
+  console.log('开收打包')
   const res = await build({
     entryPoints: [file],
     write: false,
@@ -290,6 +300,7 @@ const bundleConfigFile = async (file: string, isESM = false) => {
     metafile: true,
     bundle: true,
   })
+  console.log('结束打包')
 
   const {
     outputFiles: [{ text: code }],

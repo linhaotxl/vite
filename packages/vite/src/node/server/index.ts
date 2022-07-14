@@ -75,7 +75,7 @@ export const resolveServerOptions = (
  */
 export const createServer = async (inlineConfig: InlineConfig) => {
   // 1. 解析配置
-  const config = resolveConfig(inlineConfig, 'serve', 'development')
+  const config = await resolveConfig(inlineConfig, 'serve', 'development')
 
   // 创建中间件服务
   const middlewares = connect()

@@ -44,7 +44,7 @@ export const dynamicImport = (file: string) => import(file)
 
 const toString = Object.prototype.toString
 const toType = (value: unknown): string => toString.call(value)
-const toRawType = (value: unknown) => toType(value).slice(-1, 8)
+const toRawType = (value: unknown) => toType(value).slice(8, -1)
 
 export const isObject = (value: unknown): value is Record<string, any> =>
   toRawType(value) === 'Object'
