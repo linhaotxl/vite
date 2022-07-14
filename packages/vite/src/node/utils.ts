@@ -2,7 +2,9 @@ import fs from 'fs'
 import path from 'path'
 import debug from 'debug'
 import os from 'os'
+import resolve from 'resolve'
 import { URL } from 'node:url'
+import { DEFAULT_EXTENSIONS } from './constants'
 
 const isWindows = os.platform() === 'win32'
 
@@ -139,3 +141,22 @@ export const isImportRequest = (url: string) => importRequestRE.test(url)
  */
 export const removeImportQuery = (url: string) =>
   url.replace(importRequestRE, '')
+
+/**
+ * 检测是否是 css 请求
+ */
+const cssLangs = '\\.(css|scss|sass|less|styl|stylus)($|\\?)'
+const cssLangRE = new RegExp(cssLangs)
+// const cssModuleRE = new RegExp(`\\.module${cssLangs}`)
+export const isCssRequest = (url: string) => cssLangRE.test(url)
+
+/**
+ * 加载第三方模块路径
+ */
+export const resolveForm = (id: string, basedir: string) =>
+  resolve.sync(id, {
+    basedir,
+    extensions: DEFAULT_EXTENSIONS,
+  })
+
+export const bareImportRE = /^[@\w](.*)/

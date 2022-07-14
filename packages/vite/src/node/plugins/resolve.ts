@@ -1,4 +1,5 @@
-import { createDebugger } from './../utils'
+import { PackageData } from './../package'
+import { bareImportRE, createDebugger } from './../utils'
 import path from 'node:path'
 import fs from 'node:fs'
 import type { ResolvedConfig } from '../config'
@@ -6,6 +7,8 @@ import type { Plugin } from '../plugin'
 import { isFileReadable } from '../utils'
 import { DEFAULT_EXTENSIONS } from '../constants'
 import colors from 'picocolors'
+import { resolvePackageData } from '../package'
+import { resolve as _resolveExports } from 'resolve.exports'
 
 const isDebug = process.env.DEBUG
 
@@ -37,6 +40,13 @@ export const resolvePlugin = (config: ResolvedConfig): Plugin => {
         if ((res = tryFsResolve(file))) {
           isDebug &&
             debug(`[relative] ${colors.cyan(id)} -> ${colors.dim(res)}`)
+          return res
+        }
+      }
+
+      // 解析模块
+      if (bareImportRE.test(id)) {
+        if ((res = tryNodeResolve(id, importer))) {
           return res
         }
       }
@@ -117,4 +127,64 @@ export const splitFileAndPostfix = (file: string) => {
   }
 
   return { fileName, postfix }
+}
+
+/**
+ * 尝试解析 node 模块
+ */
+export const tryNodeResolve = (moduleName: string, importer: string) => {
+  const basedir = path.dirname(importer)
+
+  // 加载 package.json 文件内容
+  const pkg = resolvePackageData(moduleName, basedir)
+  if (!pkg) {
+    return
+  }
+
+  // 解析入口文件
+  const entryPath = resolvePackageEntry(moduleName, pkg)
+
+  return entryPath
+}
+
+/**
+ * 解析 package.json 模块入口
+ */
+const resolvePackageEntry = (moduleName: string, pkgData: PackageData) => {
+  const { data, dir } = pkgData
+
+  let entryPoint: string | undefined | void
+
+  // 解析 exports 字段
+  if (data.exports) {
+    entryPoint = resolveExports(data, '.')
+  }
+
+  // TODO: mjs 文件可以导入 cjs，使得 esm 环境失效
+
+  // 兜底 main 字段
+  entryPoint = entryPoint || data.main || 'index.js'
+
+  const entryPointPath = path.resolve(dir, entryPoint)
+
+  // 解析入口文件为绝对路径
+  const resolveEntryPointPath = tryFsResolve(entryPointPath)
+  if (resolveEntryPointPath) {
+    isDebug &&
+      debug(
+        `[package entry] ${colors.cyan(moduleName)} -> ${colors.dim(
+          resolveEntryPointPath
+        )}`
+      )
+    return resolveEntryPointPath
+  }
+
+  throw new Error(`${moduleName} 找不到`)
+}
+
+/**
+ * 解析 exports 字段
+ */
+export const resolveExports = (data: PackageData['data'], field: string) => {
+  return _resolveExports(data, field)
 }

@@ -33,10 +33,11 @@ export const importAnalysisPlugin = (config: ResolvedConfig): Plugin => {
           throw new Error('111')
         }
 
-        // 将 url 解析为可以被 URL 构造的 url
-        // if (resolved.id.startsWith(root)) {
-        //   url = resolved.id.replace(root, '')
-        // }
+        // 如果解析好路径是在 root 里面，则将 root 替换为空，这样 url 就是以 / 开头
+        // 在浏览器中发起新的资源请求，然后再处理
+        if (resolved.id.startsWith(root)) {
+          url = resolved.id.replace(root, '')
+        }
 
         // 向非 js、css 请求注入 import
         url = markExplicitImport(url)
@@ -72,7 +73,6 @@ export const importAnalysisPlugin = (config: ResolvedConfig): Plugin => {
           }
           continue
         }
-
         if (specifier) {
           const [url, resolveId] = await normalizeUrl(specifier)
 
