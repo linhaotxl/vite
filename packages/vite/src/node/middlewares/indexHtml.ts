@@ -34,6 +34,7 @@ export const indexHtmlMiddleware =
         html = await server.transformIndexHtml(url, html)
         //
         res.statusCode = 200
+        res.setHeader('Content-Type', 'text/html')
         res.end(html)
         return
       }
