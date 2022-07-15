@@ -1,13 +1,16 @@
 import fs from 'fs'
-import path, { resolve } from 'path'
+import path from 'path'
 import { build } from 'esbuild'
+import { AliasOptions } from 'types/alias'
+import type { Alias } from '@rollup/plugin-alias'
+import { createFilter } from '@rollup/pluginutils'
+
 import {
   lookupFile,
   createDebugger,
   isObject,
   isFunction,
   normalizePath,
-  mergeAlias,
   normalizeAlias,
 } from './utils'
 import { Plugin } from './plugin'
@@ -20,8 +23,7 @@ import {
 import { createLogger, Logger, LogLevel } from './logger'
 import { resolvePlugins } from './plugins'
 import { JsonOptions } from './plugins/json'
-import { AliasOptions } from 'types/alias'
-import type { Alias } from '@rollup/plugin-alias'
+import { DEFAULT_ASSETS_RE } from './constants'
 
 export interface UserConfig {
   /**
@@ -76,13 +78,23 @@ export interface UserConfig {
    * 解析相关配置
    */
   resolve?: { alias: AliasOptions }
+
+  /**
+   * 静态资源服务的文件夹
+   */
+  publicDir?: string | false
+
+  /**
+   * 额外的静态资源文件
+   */
+  assetsInclude?: string | RegExp | (string | RegExp)[]
 }
 
 export interface InlineConfig extends UserConfig {
   configFile?: string | false
 }
 
-export type ResolvedConfig = Readonly<UserConfig> & {
+export type ResolvedConfig = Readonly<Omit<UserConfig, 'assetsInclude'>> & {
   root: string
   env: Record<string, string>
 
@@ -93,6 +105,10 @@ export type ResolvedConfig = Readonly<UserConfig> & {
   plugins: Plugin[]
 
   resolve: { alias: Alias[] }
+
+  publicDir: string
+
+  assetsInclude: (file: string) => boolean
 }
 
 export type Command = 'build' | 'serve'
@@ -176,6 +192,12 @@ export const resolveConfig = async (
     }
   )
 
+  // 解析 publicDir
+  const resolvedPublicDir =
+    config.publicDir !== false && config.publicDir !== ''
+      ? path.resolve(resolveRoot, config.publicDir || 'public')
+      : ''
+
   // 获取各个时机执行的插件
   const [prePlugins, normalPlugins, postPlugins] =
     sortUserPlugins(rawUserPlugins)
@@ -183,6 +205,11 @@ export const resolveConfig = async (
   // 加载 env
   const envDir = config.envDir ? normalizePath(config.envDir) : resolveRoot
   const loadedEnv = loadEnv(mode, envDir, config.envPrefix)
+
+  // 创建额外的静态资源过滤器
+  const assetsFilter = config.assetsInclude
+    ? createFilter(config.assetsInclude)
+    : () => false
 
   const resolved: ResolvedConfig = {
     ...config,
@@ -193,10 +220,16 @@ export const resolveConfig = async (
     },
     logger,
 
+    publicDir: resolvedPublicDir,
+
     server,
 
     resolve: {
       alias: normalizeAlias(config.resolve?.alias ?? []),
+    },
+
+    assetsInclude(file) {
+      return DEFAULT_ASSETS_RE.test(file) || assetsFilter(file)
     },
   }
 

@@ -132,17 +132,31 @@ export const injectQuery = (url: string, inject: string) => {
   return `${pathname}?${inject}${resolveSearch}${resolveHash}`
 }
 
+const trailingSeparatorRE = /[?&]$/
+
 /**
- * 检测是否是 import 请求
+ * import query 检测、删除
  */
 const importRequestRE = /(\?|&)import=?(?:$|&)/
 export const isImportRequest = (url: string) => importRequestRE.test(url)
+export const removeImportQuery = (url: string) =>
+  url.replace(importRequestRE, '$1').replace(trailingSeparatorRE, '')
 
 /**
- * 移除 import query 参数
+ * raw query 检测、删除
  */
-export const removeImportQuery = (url: string) =>
-  url.replace(importRequestRE, '')
+const rawRE = /(\?|&)?raw[$&]?/
+export const isRawRequest = (url: string) => rawRE.test(url)
+export const removeRawQuery = (url: string) =>
+  url.replace(rawRE, '$1').replace(trailingSeparatorRE, '')
+
+/**
+ * url query 检测、删除
+ */
+const urlRE = /(\?|&)?url[$&]?/
+export const isUrlRequest = (url: string) => urlRE.test(url)
+export const removeUrlQuery = (url: string) =>
+  url.replace(urlRE, '$1').replace(trailingSeparatorRE, '')
 
 /**
  * 检测是否是 css 请求

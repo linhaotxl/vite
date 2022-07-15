@@ -12,7 +12,10 @@ import type { Logger } from '../logger'
 import { indexHtmlMiddleware } from '../middlewares/indexHtml'
 import { createPluginContainer, PluginContainer } from './pluginContainer'
 import { transformMiddleware } from '../middlewares/transform'
-import { resolvePlugins } from '../plugins'
+import {
+  servePublicMiddleware,
+  serveStaticMiddleware,
+} from '../middlewares/static'
 
 /**
  * vite 服务器选项
@@ -105,7 +108,15 @@ export const createServer = async (inlineConfig: InlineConfig) => {
 
   server.transformIndexHtml = createDevHtmlTransformFn(server)
 
+  // 中间顺序
+  // 静态资源
+  if (config.publicDir) {
+    middlewares.use(servePublicMiddleware(config.publicDir))
+  }
+
   middlewares.use(transformMiddleware(server))
+
+  middlewares.use(serveStaticMiddleware(config.root))
 
   middlewares.use(indexHtmlMiddleware(server))
 

@@ -6,12 +6,15 @@ import { importGlobPlugin } from './importMetaGlob'
 import { jsonPlugin } from './json'
 import { resolvePlugin } from './resolve'
 import aliasPlugin from '@rollup/plugin-alias'
+import { assetsPlugin } from './assets'
 
 export const resolvePlugins = (config: ResolvedConfig): Plugin[] => {
   return [
     aliasPlugin({ entries: config.resolve.alias }),
 
     resolvePlugin(config),
+
+    assetsPlugin(config),
 
     jsonPlugin({
       namedExports: true,

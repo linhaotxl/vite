@@ -2,7 +2,13 @@ import colors from 'picocolors'
 import { ResolvedConfig } from '../config'
 import type { Plugin } from '../plugin'
 import { init, parse as parseImports } from 'es-module-lexer'
-import { cleanUrl, createDebugger, injectQuery, isJSRequest } from '../utils'
+import {
+  cleanUrl,
+  createDebugger,
+  injectQuery,
+  isCssRequest,
+  isJSRequest,
+} from '../utils'
 import MagicString from 'magic-string'
 
 const isDebug = !!process.env.DEBUG
@@ -30,7 +36,7 @@ export const importAnalysisPlugin = (config: ResolvedConfig): Plugin => {
         const resolved = await this.resolve(url, resolveId)
 
         if (!resolved) {
-          throw new Error('111')
+          throw new Error(`${url} 找不到具体文件`)
         }
 
         // 如果解析好路径是在 root 里面，则将 root 替换为空，这样 url 就是以 / 开头
@@ -103,7 +109,7 @@ export const canSkipImportAnalysis = (id: string) => {
  */
 export const isExplicitRequest = (url: string) => {
   url = cleanUrl(url)
-  return !isJSRequest(url)
+  return !isJSRequest(url) && !isCssRequest(url)
 }
 
 /**
