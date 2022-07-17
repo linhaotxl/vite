@@ -121,8 +121,6 @@ export const importGlobPlugin = (config: ResolvedConfig): Plugin => {
         .flat()
         .filter(Boolean)
 
-      console.log('staticImports: ', staticImports)
-
       if (staticImports.length) {
         s.prepend(staticImports.join('\n'))
       }

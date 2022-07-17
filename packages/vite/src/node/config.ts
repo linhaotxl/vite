@@ -24,6 +24,7 @@ import { createLogger, Logger, LogLevel } from './logger'
 import { resolvePlugins } from './plugins'
 import { JsonOptions } from './plugins/json'
 import { DEFAULT_ASSETS_RE } from './constants'
+import { ResolveOptions } from './plugins/resolve'
 
 export interface UserConfig {
   /**
@@ -77,7 +78,7 @@ export interface UserConfig {
   /**
    * 解析相关配置
    */
-  resolve?: { alias: AliasOptions }
+  resolve?: ResolveOptions & { alias: AliasOptions }
 
   /**
    * 静态资源服务的文件夹
@@ -104,11 +105,13 @@ export type ResolvedConfig = Readonly<Omit<UserConfig, 'assetsInclude'>> & {
 
   plugins: Plugin[]
 
-  resolve: { alias: Alias[] }
+  resolve: ResolveOptions & { alias: Alias[] }
 
   publicDir: string
 
   assetsInclude: (file: string) => boolean
+
+  isProduction: boolean
 }
 
 export type Command = 'build' | 'serve'
@@ -192,6 +195,8 @@ export const resolveConfig = async (
     }
   )
 
+  const isProduction = (process.env.NODE_ENV || mode) === 'production'
+
   // 解析 publicDir
   const resolvedPublicDir =
     config.publicDir !== false && config.publicDir !== ''
@@ -221,6 +226,8 @@ export const resolveConfig = async (
     logger,
 
     publicDir: resolvedPublicDir,
+
+    isProduction,
 
     server,
 

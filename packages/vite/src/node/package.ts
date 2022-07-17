@@ -1,6 +1,8 @@
 import fs from 'node:fs'
 import path from 'node:path'
 import { resolveForm } from './utils'
+
+export type BrowserObjectField = Record<string, string | false>
 export interface PackageData {
   dir: string
 
@@ -12,6 +14,7 @@ export interface PackageData {
     module?: string
     dependencies?: Record<string, string>
     exports?: string | Record<string, any>
+    browser?: string | BrowserObjectField
   }
 }
 
@@ -27,9 +30,11 @@ export const resolvePackageData = (moduleName: string, basedir: string) => {
 
     return pkgData
   } catch (e) {
-    console.log(e)
+    if (e.code !== 'MODULE_NOT_FOUND') {
+      throw e
+    }
   }
-  return null
+  return
 }
 
 /**

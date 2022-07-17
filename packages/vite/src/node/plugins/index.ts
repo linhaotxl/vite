@@ -12,7 +12,13 @@ export const resolvePlugins = (config: ResolvedConfig): Plugin[] => {
   return [
     aliasPlugin({ entries: config.resolve.alias }),
 
-    resolvePlugin(config),
+    resolvePlugin({
+      ...config.resolve,
+      isProduction: config.isProduction,
+      tryIndex: true,
+      skipPackageJson: false,
+      root: config.root,
+    }),
 
     assetsPlugin(config),
 

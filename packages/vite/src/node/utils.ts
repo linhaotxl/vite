@@ -4,7 +4,7 @@ import debug from 'debug'
 import os from 'os'
 import resolve from 'resolve'
 import { URL } from 'node:url'
-import { DEFAULT_EXTENSIONS } from './constants'
+import { DEFAULT_EXTENSIONS, VALID_ID_PREFIX } from './constants'
 import { AliasOptions } from 'types/alias'
 import { Alias } from '@rollup/plugin-alias'
 
@@ -199,3 +199,15 @@ export const normalizeAlias = (alias: AliasOptions): Alias[] => {
     replacement,
   }))
 }
+
+/**
+ * 去除文件开头的 BOM
+ */
+export const stripBomTag = (code: string) =>
+  code.charCodeAt(0) === 0xfeff ? code.slice(1) : code
+
+/**
+ * 去除 VALID_ID_PREFIX
+ */
+export const unwrapId = (id: string) =>
+  id.startsWith(VALID_ID_PREFIX) ? id.slice(VALID_ID_PREFIX.length) : id

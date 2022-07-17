@@ -8,8 +8,10 @@ import {
   injectQuery,
   isCssRequest,
   isJSRequest,
+  stripBomTag,
 } from '../utils'
 import MagicString from 'magic-string'
+import { VALID_ID_PREFIX } from '../constants'
 
 const isDebug = !!process.env.DEBUG
 const debug = createDebugger('vite:import-analysis')
@@ -27,6 +29,9 @@ export const importAnalysisPlugin = (config: ResolvedConfig): Plugin => {
         return null
       }
 
+      // 去除 BOM，否则 parseImports 会解析失败
+      code = stripBomTag(code)
+
       // 解析 import 语句
       await init
       const [imports, exports] = parseImports(code)
@@ -34,6 +39,7 @@ export const importAnalysisPlugin = (config: ResolvedConfig): Plugin => {
       const normalizeUrl = async (url: string): Promise<[string, string]> => {
         // 解析 url 对应的文件路径
         const resolved = await this.resolve(url, resolveId)
+        console.log(`import 路径是 `, resolved)
 
         if (!resolved) {
           throw new Error(`${url} 找不到具体文件`)
@@ -43,6 +49,14 @@ export const importAnalysisPlugin = (config: ResolvedConfig): Plugin => {
         // 在浏览器中发起新的资源请求，然后再处理
         if (resolved.id.startsWith(root)) {
           url = resolved.id.replace(root, '')
+        } else {
+          // 否则直接将 url 替换为解析结果
+          url = resolved.id
+        }
+
+        // 如果 url 不是以 . 和 / 开头，说明上一步解析的是一个无效的 id，需要标记
+        if (!url.startsWith('.') && !url.startsWith('/')) {
+          url = `${VALID_ID_PREFIX}${url}`
         }
 
         // 向非 js、css 请求注入 import
@@ -79,9 +93,10 @@ export const importAnalysisPlugin = (config: ResolvedConfig): Plugin => {
           }
           continue
         }
+
         if (specifier) {
           const [url, resolveId] = await normalizeUrl(specifier)
-
+          console.log(`将 ${specifier} 重写为 ${url}`)
           str().overwrite(start, end, url)
           // if (!isDynamicImport) {
           //   staticImportedUrls.add(resolveId)

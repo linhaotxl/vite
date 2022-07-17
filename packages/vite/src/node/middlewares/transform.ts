@@ -1,3 +1,4 @@
+import { unwrapId } from './../utils'
 import { NextHandleFunction } from 'connect'
 import { isHTMLProxy } from '../plugins/html'
 import { ViteDevServer } from '../server'
@@ -28,6 +29,9 @@ export const transformMiddleware =
     ) {
       // 移除 import 参数，之后可能会根据 url 读取文件，不移除是无法正确读取的
       url = removeImportQuery(url)
+
+      // 去除 VALID_ID_PREFIX，标明这个参数说明是一个无效的 url，之后会在 resolve plugin 中处理
+      url = unwrapId(url)
 
       const code = await transformRequest(url, server)
 
