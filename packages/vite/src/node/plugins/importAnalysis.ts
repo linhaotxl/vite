@@ -39,13 +39,12 @@ export const importAnalysisPlugin = (config: ResolvedConfig): Plugin => {
       const normalizeUrl = async (url: string): Promise<[string, string]> => {
         // 解析 url 对应的文件路径
         const resolved = await this.resolve(url, resolveId)
-        console.log(`import 路径是 `, resolved)
 
         if (!resolved) {
           throw new Error(`${url} 找不到具体文件`)
         }
 
-        // 如果解析好路径是在 root 里面，则将 root 替换为空，这样 url 就是以 / 开头
+        // url 对应的文件在 root 下，则将 root 替换为空，这样 url 就是以 / 开头
         // 在浏览器中发起新的资源请求，然后再处理
         if (resolved.id.startsWith(root)) {
           url = resolved.id.replace(root, '')
@@ -54,7 +53,7 @@ export const importAnalysisPlugin = (config: ResolvedConfig): Plugin => {
           url = resolved.id
         }
 
-        // 如果 url 不是以 . 和 / 开头，说明上一步解析的是一个无效的 id，需要标记
+        // 如果 url 不是以 . 和 / 开头，说明上一步解析的是一个无效的 id，需要标记 VALID_ID_PREFIX
         if (!url.startsWith('.') && !url.startsWith('/')) {
           url = `${VALID_ID_PREFIX}${url}`
         }
@@ -95,6 +94,7 @@ export const importAnalysisPlugin = (config: ResolvedConfig): Plugin => {
         }
 
         if (specifier) {
+          // 解析重写后的 url 和 resolveId
           const [url, resolveId] = await normalizeUrl(specifier)
           console.log(`将 ${specifier} 重写为 ${url}`)
           str().overwrite(start, end, url)

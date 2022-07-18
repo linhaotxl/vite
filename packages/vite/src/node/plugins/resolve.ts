@@ -102,6 +102,12 @@ export const resolvePlugin = (options: InternalResolveOptions): Plugin => {
         const fsPath = path.resolve(dir, id)
         // 解析 id 的绝对路径是否存在
         if ((res = tryFsResolve(fsPath, options))) {
+          // 如果一个相对路径是从 package 中导入引用的，那么会将这个 package 中所有导入的相对路径都存入 idToPkgMap 中
+          const pkg = idToPkgMap.get(importer ? importer : process.cwd())
+          if (pkg) {
+            idToPkgMap.set(res, pkg)
+          }
+
           isDebug &&
             debug(`[relative] ${colors.cyan(id)} -> ${colors.dim(res)}`)
           return res
@@ -137,6 +143,9 @@ export default new Proxy({}, {
   }
 }
 
+/**
+ * 解析 file 对应的具体文件
+ */
 const tryFsResolve = (file: string, options: InternalResolveOptions) => {
   const { fileName, postfix } = splitFileAndPostfix(file)
 
@@ -148,7 +157,7 @@ const tryFsResolve = (file: string, options: InternalResolveOptions) => {
   }
 
   // 2. 加入扩展名解析
-  for (const ext of DEFAULT_EXTENSIONS) {
+  for (const ext of options.extensions || DEFAULT_EXTENSIONS) {
     if ((res = tryResolveFile(`${fileName}${ext}`, options))) {
       return res + postfix
     }
@@ -209,10 +218,10 @@ export const splitFileAndPostfix = (file: string) => {
  */
 export const tryNodeResolve = (
   moduleName: string,
-  importer: string,
+  importer: string | undefined,
   options: InternalResolveOptions
 ) => {
-  const basedir = path.dirname(importer)
+  const basedir = importer ? path.dirname(importer) : process.cwd()
 
   // 可能需要解析的模块列表；顺序是从大到小
   // import slicedToArray from '@babel/runtime/helpers/esm/slicedToArray'
@@ -263,6 +272,7 @@ export const tryNodeResolve = (
   const isDeepImport = pkgId !== moduleName
   let entryPath: string | undefined
   if (isDeepImport) {
+    // 解析嵌套导入的入口文件
     entryPath = resolveDeepImport(moduleName.slice(pkgId!.length), pkg, options)
   } else {
     // 解析入口文件
@@ -302,6 +312,7 @@ const resolvePackageEntry = (
   // 兜底 main 字段
   entryPoint = entryPoint || data.main
 
+  // 兜底解析 index.js
   const entryPoints: string[] = entryPoint ? [entryPoint] : ['index.js']
 
   for (let entry of entryPoints) {
@@ -310,6 +321,7 @@ const resolvePackageEntry = (
       entry = mapWithBrowserField(entry, browser) || entry
     }
 
+    // 解析 entryPointPath 是否存在
     const entryPointPath = path.resolve(dir, entry)
     const resolveEntryPointPath = tryFsResolve(entryPointPath, options)
 
@@ -323,21 +335,6 @@ const resolvePackageEntry = (
       return resolveEntryPointPath
     }
   }
-
-  // const entryPointPath = path.resolve(dir, entryPoint)
-  // console.log('entryPointPath: ', entryPointPath)
-
-  // 解析入口文件为绝对路径
-  // const resolveEntryPointPath = tryFsResolve(entryPointPath, options)
-  // if (resolveEntryPointPath) {
-  //   isDebug &&
-  //     debug(
-  //       `[package entry] ${colors.cyan(moduleName)} -> ${colors.dim(
-  //         resolveEntryPointPath
-  //       )}`
-  //     )
-  //   return resolveEntryPointPath
-  // }
 
   throw new Error(`${moduleName} 找不到`)
 }
@@ -360,14 +357,17 @@ const resolveDeepImport = (
 
   let relativeId: string | undefined | void = id
 
+  // 解析 exports 字段
   if (exports) {
     if (isObject(exports)) {
       // import foo from 'bar/baz?url'
       // 处理嵌套模块中带有 query，需要先将 pathname 和 query 分离，再解析
       // 否则 resolveExports 会报错
       const { fileName, postfix } = splitFileAndPostfix(relativeId)
+
+      // 解析 fileName 在 exports 中的值
       const exportsId = resolveExports(data, fileName, options)
-      console.log('exportsId: ', exportsId)
+
       if (exportsId) {
         relativeId = `${exportsId}${postfix}`
       } else {
@@ -378,6 +378,7 @@ const resolveDeepImport = (
     }
   }
 
+  // 将上一步解析出来的路径 + 目录 进行解析，解析出的结果就是嵌套导入的入口文件
   if (relativeId) {
     const res = tryFsResolve(path.join(dir, relativeId), options)
     if (res) {
@@ -406,9 +407,10 @@ export const resolveExports = (
 
 /**
  * 映射 browser 字段对应的路径
- * @param {string} id 解析 browser 字段前的路径
+ * @param {string} id 映射的路径
  */
 const mapWithBrowserField = (id: string, browser: BrowserObjectField) => {
+  // 遍历 browser，将 id 和 key 都进行转换，检测是否相等
   const normalizeId = normalizePath(id)
   for (const [key, value] of Object.entries(browser)) {
     const normalizeKey = normalizePath(key)
@@ -427,9 +429,9 @@ export const tryResolveBrowserMapping = (
   importer: string | undefined,
   options: InternalResolveOptions
 ) => {
-  // id 是否在 browser 中，
-
-  // 获取文件的
+  // 在 package 中的所有文件都会在 idToPkgMap 中存储，
+  // 所以可以通过 importer 来获取 package 的 packageData
+  // 从而检测模块 id 是否是浏览器需要的
   const pkg = importer ? idToPkgMap.get(importer) : undefined
   if (!pkg || !isObject(pkg.data.browser)) {
     return
