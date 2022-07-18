@@ -173,6 +173,9 @@ export const resolveForm = (id: string, basedir: string) =>
   resolve.sync(id, {
     basedir,
     extensions: DEFAULT_EXTENSIONS,
+    paths: [],
+    // TODO:
+    preserveSymlinks: false,
   })
 
 export const bareImportRE = /^[@\w](.*)/

@@ -353,7 +353,7 @@ const resolveDeepImport = (
 ) => {
   id = `.${id}`
   const { dir, data } = pkgData
-  const { exports } = data
+  const { exports, browser } = data
 
   let relativeId: string | undefined | void = id
 
@@ -375,6 +375,18 @@ const resolveDeepImport = (
       }
     } else {
       relativeId = undefined
+    }
+  }
+  // 解析 browser 字段
+  // 如果嵌套导入的路径存在于 browser 中，则会解析对应的值
+  else if (options.targetWeb && isObject(browser)) {
+    const { fileName, postfix } = splitFileAndPostfix(id)
+    const mapped = mapWithBrowserField(fileName, browser)
+    // console.log('mapped; ', mapped, id)
+    if (mapped) {
+      relativeId = mapped + postfix
+    } else if (mapped === false) {
+      return browserExternalId
     }
   }
 
@@ -410,14 +422,29 @@ export const resolveExports = (
  * @param {string} id 映射的路径
  */
 const mapWithBrowserField = (id: string, browser: BrowserObjectField) => {
-  // 遍历 browser，将 id 和 key 都进行转换，检测是否相等
+  // 遍历 browser，将 id 和 key 都进行转换，以下情况都视为匹配
+  // 1. 两者相等
+  // 2. browser 中的字段带有后缀 .js，但是实际 import 的时候可以不用加 .js
+  //    ".ext.js": "./dist/esm.browser.js"
+  //    import a from 'foo/ext'
+  // 3. browser 中的字段带有后缀 /index.js，这样实际 import 的时候可以不用加 /index.js
+  //    "ext/index.js": "./dist/esm.browswe.js"
+  //    import foo from 'foo/ext'
   const normalizeId = normalizePath(id)
   for (const [key, value] of Object.entries(browser)) {
     const normalizeKey = normalizePath(key)
-    if (normalizeId === normalizeKey) {
+    if (
+      normalizeId === normalizeKey ||
+      equalWithoutSuffix(normalizeId, normalizeKey, '.js') ||
+      equalWithoutSuffix(normalizeId, normalizeKey, '/index.js')
+    ) {
       return value
     }
   }
+}
+
+const equalWithoutSuffix = (path: string, key: string, suffix: string) => {
+  return key.endsWith(suffix) && key.slice(0, -suffix.length) === path
 }
 
 /**

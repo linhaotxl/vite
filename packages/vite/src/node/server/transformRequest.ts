@@ -1,3 +1,4 @@
+import { cleanUrl } from './../utils'
 import { promises as fs } from 'node:fs'
 import type { ViteDevServer } from '.'
 import { createDebugger, isNil, isObject, isString } from '../utils'
@@ -23,6 +24,7 @@ export const loadAndTransform = async (
   server: ViteDevServer
 ) => {
   const { pluginContainer } = server
+  const file = cleanUrl(resolveId)
 
   // 2. load
   const loadResult = await pluginContainer.load(resolveId)
@@ -30,7 +32,7 @@ export const loadAndTransform = async (
 
   if (isNil(loadResult)) {
     // 没有 load 钩子处理，则读取文件内容
-    code = await fs.readFile(resolveId, 'utf-8')
+    code = await fs.readFile(file, 'utf-8')
     isDebug && loadDebug(`[fs] ${resolveId}`)
   } else {
     isDebug && loadDebug(`[plugin] ${resolveId}`)
