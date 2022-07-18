@@ -15,6 +15,8 @@ export interface PackageData {
     dependencies?: Record<string, string>
     exports?: string | Record<string, any>
     browser?: string | BrowserObjectField
+
+    [field: string]: any
   }
 }
 

@@ -7,6 +7,8 @@ export const DEFAULT_EXTENSIONS = [
   '.json',
 ]
 
+export const DEFAULT_MAIN_FIELDS: string[] = ['module', 'jsnext:main', 'jsnext']
+
 export const KNOWN_ASSET_TYPES: string[] = [
   // images
   'png',

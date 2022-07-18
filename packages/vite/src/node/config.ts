@@ -232,6 +232,7 @@ export const resolveConfig = async (
     server,
 
     resolve: {
+      ...config.resolve,
       alias: normalizeAlias(config.resolve?.alias ?? []),
     },
 

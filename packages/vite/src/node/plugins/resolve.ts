@@ -1,10 +1,16 @@
-import type { BrowserObjectField, PackageData } from '../package'
-import { bareImportRE, createDebugger, isObject, normalizePath } from '../utils'
+import { BrowserObjectField, PackageData } from '../package'
+import {
+  bareImportRE,
+  createDebugger,
+  isNil,
+  isObject,
+  normalizePath,
+  isFileReadable,
+} from '../utils'
 import path from 'node:path'
 import fs from 'node:fs'
 import type { Plugin } from '../plugin'
-import { isFileReadable } from '../utils'
-import { DEFAULT_EXTENSIONS } from '../constants'
+import { DEFAULT_EXTENSIONS, DEFAULT_MAIN_FIELDS } from '../constants'
 import colors from 'picocolors'
 import { resolvePackageData } from '../package'
 import { resolve as _resolveExports } from 'resolve.exports'
@@ -100,6 +106,7 @@ export const resolvePlugin = (options: InternalResolveOptions): Plugin => {
         const dir = importer ? path.dirname(importer) : process.cwd()
         // 父目录 + id -> id 的绝对路径
         const fsPath = path.resolve(dir, id)
+
         // 解析 id 的绝对路径是否存在
         if ((res = tryFsResolve(fsPath, options))) {
           // 如果一个相对路径是从 package 中导入引用的，那么会将这个 package 中所有导入的相对路径都存入 idToPkgMap 中
@@ -182,7 +189,14 @@ export const tryResolveFile = (
       return fileName
     } else if (tryIndex) {
       if (!skipPackageJson) {
-        // 解析 package.json
+        // 不需要跳过 package.json，则解析 package.json 的位置，并解析入口文件
+        const pkg = resolvePackageData(fileName, options.root)
+        if (pkg) {
+          const entry = resolvePackageEntry(fileName, pkg, options)
+          if (entry) {
+            return entry
+          }
+        }
       }
       // 解析 index
       const index = tryFsResolve(path.join(fileName, 'index'), options)
@@ -307,7 +321,17 @@ const resolvePackageEntry = (
     entryPoint = resolveExports(data, '.', options)
   }
 
-  // TODO: mjs 文件可以导入 cjs，使得 esm 环境失效
+  // TODO: 解析 browser 字段
+
+  // 解析自定义的字段
+  if (isNil(entryPoint)) {
+    for (const field of options.mainFields || DEFAULT_MAIN_FIELDS) {
+      if (data[field]) {
+        entryPoint = data[field]
+        break
+      }
+    }
+  }
 
   // 兜底 main 字段
   entryPoint = entryPoint || data.main
