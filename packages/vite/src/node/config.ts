@@ -37,6 +37,7 @@ import {
 } from './plugins/resolve'
 import { createPluginContainer } from './server/pluginContainer'
 import type { PluginContainer } from './server/pluginContainer'
+import { CssOptions } from './plugins/css'
 
 export interface UserConfig {
   /**
@@ -101,6 +102,11 @@ export interface UserConfig {
    * 额外的静态资源文件
    */
   assetsInclude?: string | RegExp | (string | RegExp)[]
+
+  /**
+   * css 配置
+   */
+  css?: CssOptions
 }
 
 export interface InlineConfig extends UserConfig {

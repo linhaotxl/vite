@@ -83,16 +83,6 @@ export const hashRE = /#.*$/
 export const cleanUrl = (url: string) =>
   url.replace(hashRE, '').replace(queryRE, '')
 
-export const forEach = <T>(
-  arr: T[],
-  fn: (item: T, index: number, array: T[]) => void
-) => {
-  let i = -1
-  while (++i) {
-    fn(arr[i], i, arr)
-  }
-}
-
 /**
  * 检测文件是否可读
  */
@@ -163,8 +153,10 @@ export const removeUrlQuery = (url: string) =>
  */
 const cssLangs = '\\.(css|scss|sass|less|styl|stylus)($|\\?)'
 const cssLangRE = new RegExp(cssLangs)
-// const cssModuleRE = new RegExp(`\\.module${cssLangs}`)
+const cssModuleRE = new RegExp(`\\.module${cssLangs}`)
+export const normalizeCssLang = (url: string) => cssLangRE.exec(url)?.[1]
 export const isCssRequest = (url: string) => cssLangRE.test(url)
+export const isCssModuleRequest = (url: string) => cssModuleRE.test(url)
 
 /**
  * 加载第三方模块路径
@@ -214,3 +206,9 @@ export const stripBomTag = (code: string) =>
  */
 export const unwrapId = (id: string) =>
   id.startsWith(VALID_ID_PREFIX) ? id.slice(VALID_ID_PREFIX.length) : id
+
+/**
+ * 检测是否带有内置 query
+ */
+const SPECIAL_QUERY_RE = /[?&](raw)/
+export const isSpecialQuery = (url: string) => SPECIAL_QUERY_RE.test(url)

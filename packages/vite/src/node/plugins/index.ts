@@ -7,6 +7,7 @@ import { jsonPlugin } from './json'
 import { resolvePlugin } from './resolve'
 import aliasPlugin from '@rollup/plugin-alias'
 import { assetsPlugin } from './assets'
+import { cssPlugin, cssPostPlugin } from './css'
 
 export const resolvePlugins = (config: ResolvedConfig): Plugin[] => {
   return [
@@ -19,8 +20,8 @@ export const resolvePlugins = (config: ResolvedConfig): Plugin[] => {
       skipPackageJson: false,
       root: config.root,
     }),
-
     assetsPlugin(config),
+    cssPlugin(config),
 
     jsonPlugin({
       namedExports: true,
@@ -31,5 +32,7 @@ export const resolvePlugins = (config: ResolvedConfig): Plugin[] => {
 
     htmlInlineProxyPlugin(config),
     importGlobPlugin(config),
+
+    cssPostPlugin(config),
   ]
 }
