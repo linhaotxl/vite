@@ -1,16 +1,10 @@
+import path from 'node:path'
 import type {
   LoadResult,
   SourceDescription,
-  PluginContext,
-  ModuleInfo,
-  ModuleOptions,
-  PartialNull,
   CustomPluginOptions,
-  EmitFile,
-  AcornNode,
   PartialResolvedId,
   ResolvedId,
-  TransformPluginContext,
 } from 'rollup'
 import { ResolvedConfig } from '../config'
 import { Plugin } from '../plugin'
@@ -38,7 +32,7 @@ export interface PluginContainer {
  * 插件插件容器
  */
 export const createPluginContainer = (config: ResolvedConfig) => {
-  const { plugins } = config
+  const { plugins, root } = config
 
   class Context {
     // _activePlugin: Plugin | undefined
@@ -65,7 +59,11 @@ export const createPluginContainer = (config: ResolvedConfig) => {
   class TransformContext extends Context {}
 
   const container: PluginContainer = {
-    async resolveId(id, impoter, options = {}) {
+    async resolveId(
+      id,
+      impoter = path.resolve(root, 'index.html'),
+      options = {}
+    ) {
       const ctx = new Context()
       let resolveId: PartialResolvedId | null = null
 
