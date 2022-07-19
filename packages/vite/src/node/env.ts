@@ -25,8 +25,6 @@ export const loadEnv = (
     }
   }
 
-  console.log('环境变量有 ', envs)
-
   // env 文件，按照优先级加载
   const envFiels: string[] = [
     `.env.[${mode}].local`,

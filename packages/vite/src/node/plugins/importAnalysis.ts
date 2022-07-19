@@ -96,7 +96,6 @@ export const importAnalysisPlugin = (config: ResolvedConfig): Plugin => {
         if (specifier) {
           // 解析重写后的 url 和 resolveId
           const [url, resolveId] = await normalizeUrl(specifier)
-          console.log(`将 ${specifier} 重写为 ${url}`)
           str().overwrite(start, end, url)
           // if (!isDynamicImport) {
           //   staticImportedUrls.add(resolveId)
