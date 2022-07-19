@@ -4,6 +4,7 @@ import { build } from 'esbuild'
 import { AliasOptions } from 'types/alias'
 import type { Alias } from '@rollup/plugin-alias'
 import { createFilter } from '@rollup/pluginutils'
+import aliasPlugin from '@rollup/plugin-alias'
 
 import {
   lookupFile,
@@ -12,6 +13,7 @@ import {
   isFunction,
   normalizePath,
   normalizeAlias,
+  mergeAlias,
 } from './utils'
 import { Plugin } from './plugin'
 import { loadEnv } from './env'
@@ -23,8 +25,18 @@ import {
 import { createLogger, Logger, LogLevel } from './logger'
 import { resolvePlugins } from './plugins'
 import { JsonOptions } from './plugins/json'
-import { DEFAULT_ASSETS_RE } from './constants'
-import { ResolveOptions } from './plugins/resolve'
+import {
+  CLIENT_ENTRY,
+  CLIENT_PUBLIC_PATH,
+  DEFAULT_ASSETS_RE,
+} from './constants'
+import {
+  InternalResolveOptions,
+  ResolveOptions,
+  resolvePlugin,
+} from './plugins/resolve'
+import { createPluginContainer } from './server/pluginContainer'
+import type { PluginContainer } from './server/pluginContainer'
 
 export interface UserConfig {
   /**
@@ -112,7 +124,15 @@ export type ResolvedConfig = Readonly<Omit<UserConfig, 'assetsInclude'>> & {
   assetsInclude: (file: string) => boolean
 
   isProduction: boolean
+
+  createResolver: (options: Partial<InternalResolveOptions>) => ResolveFn
 }
+
+type ResolveFn = (
+  id: string,
+  importer?: string,
+  aliasOnly?: boolean
+) => Promise<string | undefined>
 
 export type Command = 'build' | 'serve'
 
@@ -216,6 +236,51 @@ export const resolveConfig = async (
     ? createFilter(config.assetsInclude)
     : () => false
 
+  const createResolver: ResolvedConfig['createResolver'] = resolveOptions => {
+    let alaisContainer: PluginContainer
+    let resolveContainer: PluginContainer
+
+    return async (id, importer, alaisOnly) => {
+      let container: PluginContainer
+
+      if (alaisOnly) {
+        alaisContainer =
+          alaisContainer ||
+          createPluginContainer({
+            ...resolved,
+            plugins: [aliasPlugin({ entries: resolved.resolve.alias })],
+          })
+
+        container = alaisContainer
+      } else {
+        resolveContainer =
+          resolveContainer ||
+          createPluginContainer({
+            ...resolved,
+            plugins: [
+              aliasPlugin({ entries: resolved.resolve.alias }),
+              resolvePlugin({
+                ...resolved.resolve,
+                root: resolveRoot,
+                tryIndex: true,
+                skipPackageJson: false,
+                isProduction,
+                ...resolveOptions,
+              }),
+            ],
+          })
+
+        container = resolveContainer
+      }
+
+      return (await container.resolveId(id, importer))?.id
+    }
+  }
+
+  const clientAlias: Alias[] = [
+    { find: new RegExp(`^${CLIENT_PUBLIC_PATH}`), replacement: CLIENT_ENTRY },
+  ]
+
   const resolved: ResolvedConfig = {
     ...config,
     root: resolveRoot,
@@ -223,6 +288,7 @@ export const resolveConfig = async (
     env: {
       ...loadedEnv,
     },
+    createResolver,
     logger,
 
     publicDir: resolvedPublicDir,
@@ -233,7 +299,9 @@ export const resolveConfig = async (
 
     resolve: {
       ...config.resolve,
-      alias: normalizeAlias(config.resolve?.alias ?? []),
+      alias: normalizeAlias(
+        mergeAlias(clientAlias, normalizeAlias(config.resolve?.alias ?? []))
+      ),
     },
 
     assetsInclude(file) {
@@ -346,7 +414,6 @@ const loadConfigFromFile = async (
  * 打包配置文件
  */
 const bundleConfigFile = async (file: string, isESM = false) => {
-  console.log('开收打包')
   const res = await build({
     entryPoints: [file],
     write: false,
@@ -355,7 +422,6 @@ const bundleConfigFile = async (file: string, isESM = false) => {
     bundle: true,
     platform: 'node',
   })
-  console.log('结束打包')
 
   const {
     outputFiles: [{ text: code }],
