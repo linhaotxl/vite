@@ -10,10 +10,22 @@ import pkg from './package.json'
 const base = __dirname
 const resolve = (...p: string[]) => path.resolve(base, ...p)
 
-export default (commandLine: any) => {
-  const isDev = !!commandLine.watch
-  const isProd = !isDev
+const clientConfig = defineConfig({
+  input: resolve('src/client/client.ts'),
 
+  output: {
+    file: resolve('dist/client/client.mjs'),
+  },
+
+  plugins: [
+    typescript({
+      tsconfig: resolve('src/client/tsconfig.json'),
+      sourceMap: true,
+    }),
+  ],
+})
+
+const createNodeConfig = (isProduction: boolean) => {
   return defineConfig({
     input: {
       index: resolve('src/node/index.ts'),
@@ -27,18 +39,10 @@ export default (commandLine: any) => {
 
     external: [
       ...Object.keys(pkg.dependencies),
-      ...(isProd ? [] : Object.keys(pkg.devDependencies)),
+      ...(isProduction ? [] : Object.keys(pkg.devDependencies)),
     ],
 
     plugins: [
-      // alias({
-      //   entries: {
-      //     '@vue/compiler': require.resolve(
-      //       '@vue/compiler-dom/dist/compiler-dom.cjs.js'
-      //     )
-      //   }
-      // }),
-
       nodeResolve({
         // preferBuiltins: true
       }),
@@ -65,4 +69,11 @@ export default (commandLine: any) => {
       json(),
     ],
   })
+}
+
+export default (commandLine: any) => {
+  const isDev = !!commandLine.watch
+  const isProduction = !isDev
+
+  return [clientConfig, createNodeConfig(isProduction)]
 }

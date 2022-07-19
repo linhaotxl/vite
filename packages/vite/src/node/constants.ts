@@ -1,3 +1,5 @@
+import path from 'node:path'
+
 export const DEFAULT_EXTENSIONS = [
   '.js',
   '.jsx',
@@ -27,3 +29,11 @@ export const DEFAULT_ASSETS_RE = new RegExp(
  * 浏览器只能识别以 .、/ 开头的导入资源
  */
 export const VALID_ID_PREFIX = '/@id/'
+
+export const CLIENT_PUBLIC_PATH = '/@vite/client'
+
+export const CLIENT_ENTRY = path.resolve(
+  __dirname,
+  '../..',
+  'dist/client/client.mjs'
+)

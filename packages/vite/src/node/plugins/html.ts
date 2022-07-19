@@ -196,7 +196,8 @@ const injectHeadTo = (
           `${all}\n${serializeTags(tags, incrementIndent(whitespace))}`
       )
     }
-    return html
+    // 兜底
+    return prependInjectFallback(html, tags)
   }
 
   // 插入 head 尾部
@@ -295,7 +296,8 @@ const prependInjectFallback = (html: string, tags: HtmlTagDescriptor[]) => {
       all => `${all}\n${serializeTags(tags)}`
     )
   }
-  return `${html}\n${serializeTags(tags)}`
+
+  return `${serializeTags(tags)}\n${html}`
 }
 
 const noTails = new Set(['meta', 'link', 'base'])
@@ -309,7 +311,7 @@ const serializeTag = (
 ) => {
   return noTails.has(tag)
     ? `${whitespace}<${tag}${serializeAttrs(attrs)}>`
-    : `${whitespace}<${tag}>\n${serializeTags(
+    : `${whitespace}<${tag}${serializeAttrs(attrs)}>\n${serializeTags(
         children,
         incrementIndent(whitespace)
       )}${whitespace}</${tag}>`
@@ -336,13 +338,13 @@ const serializeAttrs = (attrs: HtmlTagDescriptor['attrs']) => {
   if (!attrs) {
     return ''
   }
+
   let res = ''
-  forEach(Object.keys(attrs), key => {
-    const value = attrs[key]
+  Object.entries(attrs).forEach(([attr, value]) => {
     if (isBoolean(value)) {
-      res += value ? ` ${key}` : ''
+      res += value ? ` ${attr}` : ''
     } else {
-      res += ` ${key}=${JSON.stringify(value)}`
+      res += ` ${attr}=${JSON.stringify(value)}`
     }
   })
 

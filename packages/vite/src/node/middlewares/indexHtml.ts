@@ -15,6 +15,7 @@ import { resolveHtmlTransforms } from '../plugins/html'
 import { NodeTypes } from '@vue/compiler-dom'
 import type { ElementNode, TextNode } from '@vue/compiler-dom'
 import MagicString from 'magic-string'
+import { CLIENT_PUBLIC_PATH } from '../constants'
 
 /**
  * 处理 html 文件中间件
@@ -122,6 +123,15 @@ export const devIndexHtml: IndexHtmlTransformHook = async (
 
   return {
     html: s.toString(),
-    tags: [],
+    tags: [
+      {
+        tag: 'script',
+        attrs: {
+          type: 'module',
+          src: CLIENT_PUBLIC_PATH,
+        },
+        injectTo: 'head-prepend',
+      },
+    ],
   }
 }
