@@ -149,6 +149,12 @@ export const removeUrlQuery = (url: string) =>
   url.replace(urlRE, '$1').replace(trailingSeparatorRE, '')
 
 /**
+ * inline query 检测、删除
+ */
+const inlineRE = /(\?|&)?inline[$&]?/
+export const isInlineRequest = (url: string) => inlineRE.test(url)
+
+/**
  * 检测是否是 css 请求
  */
 const cssLangs = '\\.(css|scss|sass|less|styl|stylus)($|\\?)'

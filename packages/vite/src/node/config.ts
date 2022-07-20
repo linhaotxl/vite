@@ -134,7 +134,7 @@ export type ResolvedConfig = Readonly<Omit<UserConfig, 'assetsInclude'>> & {
   createResolver: (options: Partial<InternalResolveOptions>) => ResolveFn
 }
 
-type ResolveFn = (
+export type ResolveFn = (
   id: string,
   importer?: string,
   aliasOnly?: boolean

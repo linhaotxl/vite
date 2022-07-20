@@ -20,6 +20,8 @@ export const resolvePlugins = (config: ResolvedConfig): Plugin[] => {
       skipPackageJson: false,
       root: config.root,
     }),
+
+    // assets plugin 要在前面，碰到 ?raw 或者资源文件会优先加载，不会做转换处理
     assetsPlugin(config),
     cssPlugin(config),
 
@@ -28,11 +30,12 @@ export const resolvePlugins = (config: ResolvedConfig): Plugin[] => {
       ...config.json,
     }),
 
+    // css post 要在 import analysis 前面，在 analysis 中会对 import 进行分析，必须保证 css 已经是加载完成的 JS 形式
+    cssPostPlugin(config),
+
     importAnalysisPlugin(config),
 
     htmlInlineProxyPlugin(config),
     importGlobPlugin(config),
-
-    cssPostPlugin(config),
   ]
 }

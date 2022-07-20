@@ -7,14 +7,7 @@ import { NodeTypes } from '@vue/compiler-dom'
 import { ResolvedConfig } from '../config'
 import type { Plugin } from '../plugin'
 import { ViteDevServer } from '../server'
-import {
-  isFunction,
-  isString,
-  isArray,
-  forEach,
-  isBoolean,
-  cleanUrl,
-} from '../utils'
+import { isFunction, isString, isArray, isBoolean, cleanUrl } from '../utils'
 
 /**
  * html 转换标签描述

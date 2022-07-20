@@ -11,7 +11,7 @@ import {
   stripBomTag,
 } from '../utils'
 import MagicString from 'magic-string'
-import { VALID_ID_PREFIX } from '../constants'
+import { CLIENT_PUBLIC_PATH, VALID_ID_PREFIX } from '../constants'
 
 const isDebug = !!process.env.DEBUG
 const debug = createDebugger('vite:import-analysis')
@@ -94,6 +94,11 @@ export const importAnalysisPlugin = (config: ResolvedConfig): Plugin => {
         }
 
         if (specifier) {
+          // 跳过 client，不再重复请求
+          if (specifier === CLIENT_PUBLIC_PATH) {
+            continue
+          }
+
           // 解析重写后的 url 和 resolveId
           const [url, resolveId] = await normalizeUrl(specifier)
           str().overwrite(start, end, url)
