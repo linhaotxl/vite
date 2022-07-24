@@ -17,7 +17,11 @@ export interface PluginContainer {
   resolveId: (
     id: string,
     impoter?: string,
-    options?: { skip?: Set<Plugin> }
+    options?: {
+      skip?: Set<Plugin>
+      custom?: CustomPluginOptions | undefined
+      isEntry?: boolean | undefined
+    }
   ) => Promise<PartialResolvedId | null>
 
   load: (id: string) => Promise<LoadResult>
@@ -35,7 +39,7 @@ export const createPluginContainer = (config: ResolvedConfig) => {
   const { plugins, root } = config
 
   class Context {
-    // _activePlugin: Plugin | undefined
+    _activePlugin: Plugin | undefined
 
     async resolve(
       source: string,
@@ -48,9 +52,13 @@ export const createPluginContainer = (config: ResolvedConfig) => {
           }
         | undefined
     ) {
-      let skip: Set<Plugin> | undefined
+      const skip: Set<Plugin> | undefined =
+        !!options?.skipSelf && this._activePlugin
+          ? new Set([this._activePlugin])
+          : undefined
 
       return (await container.resolveId(source, importer, {
+        ...options,
         skip,
       })) as ResolvedId | null
     }
@@ -75,8 +83,11 @@ export const createPluginContainer = (config: ResolvedConfig) => {
           continue
         }
 
-        // ctx._activePlugin = plugin
-        const result = await plugin.resolveId.call(ctx as any, id, impoter)
+        ctx._activePlugin = plugin
+        const result = await plugin.resolveId.call(ctx as any, id, impoter, {
+          isEntry: !!options.isEntry,
+          custom: options.custom,
+        })
 
         if (result) {
           if (isString(result)) {
