@@ -16,6 +16,7 @@
   "devDependencies": {
     "@types/connect": "^3.4.35",
     "@types/estree": "^0.0.52",
+    "@types/less": "^3.0.3",
     "@types/postcss-import": "^14.0.0",
     "@types/resolve": "^1.20.2",
     "cac": "^6.7.12",
