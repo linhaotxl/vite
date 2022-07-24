@@ -108,6 +108,26 @@ export const importAnalysisPlugin = (config: ResolvedConfig): Plugin => {
         }
       }
 
+      // 注入 env 环境变量，以及以 import.meta.env 开头的全局变量
+      if (hasEnv) {
+        let env = `import.meta.env = ${JSON.stringify(
+          { ...config.env },
+          null,
+          2
+        )};\n`
+        if (config.define) {
+          for (const [key, value] of Object.entries(config.define)) {
+            if (key.startsWith('import.meta.env.')) {
+              env += `${key} = ${
+                typeof value === 'string' ? `(${value})` : JSON.stringify(value)
+              }\n`
+            }
+          }
+        }
+
+        str().prepend(env)
+      }
+
       return s ? s.toString() : code
       // staticImportedUrls.forEach((id) => {
       // })

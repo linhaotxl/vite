@@ -27,8 +27,8 @@ export const loadEnv = (
 
   // env 文件，按照优先级加载
   const envFiels: string[] = [
-    `.env.[${mode}].local`,
-    `.env.[${mode}]`,
+    `.env.${mode}.local`,
+    `.env.${mode}`,
     `.env.local`,
     `.env`,
   ]

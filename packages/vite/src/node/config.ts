@@ -122,7 +122,7 @@ export interface InlineConfig extends UserConfig {
 
 export type ResolvedConfig = Readonly<Omit<UserConfig, 'assetsInclude'>> & {
   root: string
-  env: Record<string, string>
+  env: Record<string, any>
 
   logger: Logger
 
@@ -305,6 +305,9 @@ export const resolveConfig = async (
     plugins: [],
     env: {
       ...loadedEnv,
+      MODE: mode,
+      DEV: !isProduction,
+      PROD: isProduction,
     },
     createResolver,
     logger,
