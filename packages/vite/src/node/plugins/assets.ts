@@ -1,3 +1,4 @@
+import { normalizePath } from './../utils'
 import fs from 'node:fs'
 import path from 'node:path'
 import { ResolvedConfig } from '../config'
@@ -55,4 +56,19 @@ export const checkPublicFile = ({ publicDir }: ResolvedConfig, id: string) => {
   if (fs.existsSync(idPath)) {
     return idPath
   }
+}
+
+/**
+ * 将文件路径映射为 url
+ */
+export const fileToUrl = async (file: string, config: ResolvedConfig) => {
+  return fileToDevUrl(file, config)
+}
+
+const fileToDevUrl = (file: string, config: ResolvedConfig) => {
+  if (file.startsWith(config.root)) {
+    return `/${normalizePath(path.relative(config.root, file))}`
+  }
+
+  return file
 }
