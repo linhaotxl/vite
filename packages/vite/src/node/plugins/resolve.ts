@@ -6,6 +6,7 @@ import {
   isObject,
   normalizePath,
   isFileReadable,
+  isAbsolutePath,
 } from '../utils'
 import path from 'node:path'
 import fs from 'node:fs'
@@ -85,6 +86,7 @@ export const resolvePlugin = (options: InternalResolveOptions): Plugin => {
       if (id.startsWith(browserExternalId)) {
         return browserExternalId
       }
+      console.log('开始解析 ', id, importer)
 
       // 标明 web 环境
       options.targetWeb = true
@@ -104,9 +106,10 @@ export const resolvePlugin = (options: InternalResolveOptions): Plugin => {
       if (id.startsWith('.')) {
         // 父目录
         const dir = importer ? path.dirname(importer) : process.cwd()
+        console.log(`父目录是: ${importer} -> dir`)
         // 父目录 + id -> id 的绝对路径
         const fsPath = path.resolve(dir, id)
-
+        console.log(`解析相对路径: ${id}; dir: ${dir}; fsPath: ${fsPath}`)
         // 解析 id 的绝对路径是否存在
         if ((res = tryFsResolve(fsPath, options))) {
           // 如果一个相对路径是从 package 中导入引用的，那么会将这个 package 中所有导入的相对路径都存入 idToPkgMap 中
@@ -119,6 +122,12 @@ export const resolvePlugin = (options: InternalResolveOptions): Plugin => {
             debug(`[relative] ${colors.cyan(id)} -> ${colors.dim(res)}`)
           return res
         }
+      }
+
+      // 绝对路径
+      if (isAbsolutePath(id) && (res = tryFsResolve(id, options))) {
+        isDebug && debug(`[absolute] ${colors.cyan(id)} -> ${colors.dim(res)}`)
+        return res
       }
 
       // 解析模块

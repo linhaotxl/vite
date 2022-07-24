@@ -155,6 +155,18 @@ const inlineRE = /(\?|&)?inline[$&]?/
 export const isInlineRequest = (url: string) => inlineRE.test(url)
 
 /**
+ * css url 属性检测
+ */
+export const cssUrlRE = /url\(\s*('[^']+'|"[^"]+"|[^'")]+)\s*\)/
+export const isCssUrl = (source: string) => cssUrlRE.test(source)
+
+/**
+ * import css url 检测
+ */
+export const importCssUrlRE = /@import\s*('[^']+\.css'|"[^"]+\.css"|[^'"]\.css)/
+export const isImportCssUrl = (source: string) => importCssUrlRE.test(source)
+
+/**
  * 检测是否是 css 请求
  */
 const cssLangs = '\\.(css|scss|sass|less|styl|stylus)($|\\?)'
@@ -218,3 +230,34 @@ export const unwrapId = (id: string) =>
  */
 const SPECIAL_QUERY_RE = /[?&](raw)/
 export const isSpecialQuery = (url: string) => SPECIAL_QUERY_RE.test(url)
+
+/**
+ * 异步 String.prototype.replace
+ */
+export const asyncReplace = async (
+  source: string,
+  regexp: RegExp,
+  replacer: (match: RegExpExecArray) => Promise<string>
+) => {
+  let input = source
+  let rewriteSource = ''
+  let match: RegExpExecArray | null = null
+  if ((match = regexp.exec(source))) {
+    rewriteSource += source.slice(0, match.index)
+    rewriteSource += await replacer(match)
+    input = source.slice(match.index + match[0].length)
+  }
+
+  return rewriteSource + input
+}
+
+/**
+ * 检测是否是绝对路径
+ */
+const windowsDrivePathPrefixRE = /^[A-Za-z]:[/\\]/
+export const isAbsolutePath = (path: string) => {
+  if (!isWindows) {
+    return path.startsWith('/')
+  }
+  return windowsDrivePathPrefixRE.test(path)
+}
