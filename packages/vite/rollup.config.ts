@@ -25,6 +25,21 @@ const clientConfig = defineConfig({
   ],
 })
 
+const envConfig = defineConfig({
+  input: resolve('src/client/env.ts'),
+
+  output: {
+    file: resolve('dist/client/env.mjs'),
+  },
+
+  plugins: [
+    typescript({
+      tsconfig: resolve('src/client/tsconfig.json'),
+      sourceMap: true,
+    }),
+  ],
+})
+
 const createNodeConfig = (isProduction: boolean) => {
   return defineConfig({
     input: {
@@ -75,5 +90,5 @@ export default (commandLine: any) => {
   const isDev = !!commandLine.watch
   const isProduction = !isDev
 
-  return [clientConfig, createNodeConfig(isProduction)]
+  return [clientConfig, envConfig, createNodeConfig(isProduction)]
 }

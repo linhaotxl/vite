@@ -29,6 +29,8 @@ import {
   CLIENT_ENTRY,
   CLIENT_PUBLIC_PATH,
   DEFAULT_ASSETS_RE,
+  ENV_ENTRY,
+  ENV_PUBLIC_PATH,
 } from './constants'
 import {
   InternalResolveOptions,
@@ -107,6 +109,11 @@ export interface UserConfig {
    * css 配置
    */
   css?: CssOptions
+
+  /**
+   * 自定义全局变量
+   */
+  define?: Record<string, any>
 }
 
 export interface InlineConfig extends UserConfig {
@@ -284,11 +291,16 @@ export const resolveConfig = async (
   }
 
   const clientAlias: Alias[] = [
-    { find: new RegExp(`^${CLIENT_PUBLIC_PATH}`), replacement: CLIENT_ENTRY },
+    {
+      find: new RegExp(`^[/]?${CLIENT_PUBLIC_PATH}`),
+      replacement: CLIENT_ENTRY,
+    },
+    { find: new RegExp(`^[/]?${ENV_PUBLIC_PATH}`), replacement: ENV_ENTRY },
   ]
 
   const resolved: ResolvedConfig = {
     ...config,
+    mode,
     root: resolveRoot,
     plugins: [],
     env: {

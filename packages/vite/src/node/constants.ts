@@ -30,10 +30,16 @@ export const DEFAULT_ASSETS_RE = new RegExp(
  */
 export const VALID_ID_PREFIX = '/@id/'
 
-export const CLIENT_PUBLIC_PATH = '/@vite/client'
-
+// client.mjs 导入路径
+export const CLIENT_PUBLIC_PATH = '@vite/client'
+// client.mjs 实际路径
 export const CLIENT_ENTRY = path.resolve(
   __dirname,
   '../..',
   'dist/client/client.mjs'
 )
+
+// client.mjs 导入路径
+export const ENV_PUBLIC_PATH = '@vite/env'
+// client.mjs 实际路径
+export const ENV_ENTRY = path.resolve(__dirname, '../..', 'dist/client/env.mjs')

@@ -8,6 +8,7 @@ import { resolvePlugin } from './resolve'
 import aliasPlugin from '@rollup/plugin-alias'
 import { assetsPlugin } from './assets'
 import { cssPlugin, cssPostPlugin } from './css'
+import { clientInjectionsPlugin } from './clientInjections'
 
 export const resolvePlugins = (config: ResolvedConfig): Plugin[] => {
   return [
@@ -33,6 +34,7 @@ export const resolvePlugins = (config: ResolvedConfig): Plugin[] => {
     // css post 要在 import analysis 前面，在 analysis 中会对 import 进行分析，必须保证 css 已经是加载完成的 JS 形式
     cssPostPlugin(config),
 
+    clientInjectionsPlugin(config),
     importAnalysisPlugin(config),
 
     htmlInlineProxyPlugin(config),

@@ -1,3 +1,5 @@
+import '@vite/env'
+
 /**
  * 更新样式
  */
