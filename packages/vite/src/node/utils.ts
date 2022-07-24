@@ -177,6 +177,12 @@ export const isCssRequest = (url: string) => cssLangRE.test(url)
 export const isCssModuleRequest = (url: string) => cssModuleRE.test(url)
 
 /**
+ * 检测是否是 data url 请求
+ */
+const dataUrlRE = /^\s*data:/i
+export const isDataUrl = (url: string) => dataUrlRE.test(url)
+
+/**
  * 加载第三方模块路径
  */
 export const resolveForm = (id: string, basedir: string) =>

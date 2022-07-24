@@ -7,6 +7,7 @@ import {
   normalizePath,
   isFileReadable,
   isAbsolutePath,
+  isDataUrl,
 } from '../utils'
 import path from 'node:path'
 import fs from 'node:fs'
@@ -86,7 +87,11 @@ export const resolvePlugin = (options: InternalResolveOptions): Plugin => {
       if (id.startsWith(browserExternalId)) {
         return browserExternalId
       }
-      console.log('开始解析 ', id, importer)
+
+      // 不会处理 data url 的解析，直接让 data url 以原样形式发起请求
+      if (isDataUrl(id)) {
+        return null
+      }
 
       // 标明 web 环境
       options.targetWeb = true

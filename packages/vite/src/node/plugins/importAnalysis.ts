@@ -7,6 +7,7 @@ import {
   createDebugger,
   injectQuery,
   isCssRequest,
+  isDataUrl,
   isJSRequest,
   stripBomTag,
 } from '../utils'
@@ -94,6 +95,11 @@ export const importAnalysisPlugin = (config: ResolvedConfig): Plugin => {
         }
 
         if (specifier) {
+          // 不会重写 data url，直接让 data url 以原样形式发起请求
+          if (isDataUrl(specifier)) {
+            continue
+          }
+
           // 跳过 client，不再重复请求
           if (specifier === CLIENT_PUBLIC_PATH) {
             continue
