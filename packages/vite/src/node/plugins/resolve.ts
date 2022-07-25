@@ -12,7 +12,11 @@ import {
 import path from 'node:path'
 import fs from 'node:fs'
 import type { Plugin } from '../plugin'
-import { DEFAULT_EXTENSIONS, DEFAULT_MAIN_FIELDS } from '../constants'
+import {
+  DEFAULT_EXTENSIONS,
+  DEFAULT_MAIN_FIELDS,
+  FS_PREFIX,
+} from '../constants'
 import colors from 'picocolors'
 import { resolvePackageData } from '../package'
 import { resolve as _resolveExports } from 'resolve.exports'
@@ -97,6 +101,11 @@ export const resolvePlugin = (options: InternalResolveOptions): Plugin => {
       options.targetWeb = true
 
       let res: string | undefined
+
+      if (id.startsWith(FS_PREFIX)) {
+        res = tryFsResolve(`/${id.slice(FS_PREFIX.length)}`, options)
+        return res
+      }
 
       // 解析 URL；/foo -> /root/foo
       if (id.startsWith('/')) {

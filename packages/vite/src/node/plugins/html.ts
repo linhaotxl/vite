@@ -452,3 +452,7 @@ export const htmlInlineProxyPlugin = (config: ResolvedConfig): Plugin => {
     },
   }
 }
+
+export const assetAttrsConfig: Record<string, string[]> = {
+  img: ['src'],
+}

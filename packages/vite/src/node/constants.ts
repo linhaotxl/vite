@@ -30,6 +30,8 @@ export const DEFAULT_ASSETS_RE = new RegExp(
  */
 export const VALID_ID_PREFIX = '/@id/'
 
+export const FS_PREFIX = '/@fs/'
+
 // client.mjs 导入路径
 export const CLIENT_PUBLIC_PATH = '@vite/client'
 // client.mjs 实际路径

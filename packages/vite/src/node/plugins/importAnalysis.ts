@@ -1,3 +1,5 @@
+import path from 'node:path'
+import fs from 'node:fs'
 import colors from 'picocolors'
 import { ResolvedConfig } from '../config'
 import type { Plugin } from '../plugin'
@@ -10,9 +12,10 @@ import {
   isDataUrl,
   isJSRequest,
   stripBomTag,
+  normalizePath,
 } from '../utils'
 import MagicString from 'magic-string'
-import { CLIENT_PUBLIC_PATH, VALID_ID_PREFIX } from '../constants'
+import { CLIENT_PUBLIC_PATH, FS_PREFIX, VALID_ID_PREFIX } from '../constants'
 
 const isDebug = !!process.env.DEBUG
 const debug = createDebugger('vite:import-analysis')
@@ -49,6 +52,9 @@ export const importAnalysisPlugin = (config: ResolvedConfig): Plugin => {
         // 在浏览器中发起新的资源请求，然后再处理
         if (resolved.id.startsWith(root)) {
           url = resolved.id.replace(root, '')
+        } else if (fs.existsSync(cleanUrl(resolved.id))) {
+          // 不在 root 下面，标记 FS_PREFIX
+          url = normalizePath(path.join(FS_PREFIX, resolved.id))
         } else {
           // 否则直接将 url 替换为解析结果
           url = resolved.id

@@ -1,6 +1,7 @@
 import {
   addToHTMLProxyCache,
   applyIndexTransformHooks,
+  assetAttrsConfig,
   getScriptInfo,
   IndexHtmlTransformHook,
   traverseHtml,
@@ -12,7 +13,7 @@ import fs from 'node:fs'
 import type { ViteDevServer } from '../server'
 import { cleanUrl } from '../utils'
 import { resolveHtmlTransforms } from '../plugins/html'
-import { NodeTypes } from '@vue/compiler-dom'
+import { AttributeNode, NodeTypes } from '@vue/compiler-dom'
 import type { ElementNode, TextNode } from '@vue/compiler-dom'
 import MagicString from 'magic-string'
 import { CLIENT_PUBLIC_PATH } from '../constants'
@@ -119,6 +120,16 @@ export const devIndexHtml: IndexHtmlTransformHook = async (
     if (node.tag === 'style') {
       console.log('style')
     }
+
+    let attrs: string[] | undefined
+    if ((attrs = assetAttrsConfig[node.tag])) {
+      for (const prop of node.props) {
+        if (prop.type === NodeTypes.DIRECTIVE || !attrs.includes(prop.name)) {
+          continue
+        }
+        processNodeUrl(prop, s)
+      }
+    }
   })
 
   return {
@@ -133,5 +144,16 @@ export const devIndexHtml: IndexHtmlTransformHook = async (
         injectTo: 'head-prepend',
       },
     ],
+  }
+}
+
+const processNodeUrl = (node: AttributeNode, s: MagicString) => {
+  const url = node.value?.content ?? ''
+  if (url.startsWith('.')) {
+    const {
+      start: { offset: start },
+      end: { offset: end },
+    } = node.value!.loc
+    s.overwrite(start, end, `"${path.join('/', url)}"`)
   }
 }
