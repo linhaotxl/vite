@@ -17,6 +17,8 @@ import {
   serveStaticMiddleware,
 } from '../middlewares/static'
 
+import { createDepsOptimizer } from '../optimizer/optimizer'
+
 /**
  * vite 服务器选项
  */
@@ -100,8 +102,10 @@ export const createServer = async (inlineConfig: InlineConfig) => {
     config,
     httpServer,
     pluginContainer,
-    listen(port) {
-      return startServer(server, port)
+    async listen(port) {
+      await createDepsOptimizer(config)
+      const res = await startServer(server, port)
+      return res
     },
     transformIndexHtml: null!,
   }

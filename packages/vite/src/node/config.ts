@@ -40,6 +40,7 @@ import {
 import { createPluginContainer } from './server/pluginContainer'
 import type { PluginContainer } from './server/pluginContainer'
 import { CssOptions } from './plugins/css'
+import { DepOptimizationOptions } from './optimizer'
 
 export interface UserConfig {
   /**
@@ -114,6 +115,16 @@ export interface UserConfig {
    * 自定义全局变量
    */
   define?: Record<string, any>
+
+  /**
+   * 预构建配置
+   */
+  optimizeDeps?: DepOptimizationOptions
+
+  /**
+   * 缓存目录
+   */
+  cacheDir?: string
 }
 
 export interface InlineConfig extends UserConfig {
@@ -137,6 +148,8 @@ export type ResolvedConfig = Readonly<Omit<UserConfig, 'assetsInclude'>> & {
   assetsInclude: (file: string) => boolean
 
   isProduction: boolean
+
+  cacheDir: string
 
   createResolver: (options: Partial<InternalResolveOptions>) => ResolveFn
 }
@@ -298,9 +311,14 @@ export const resolveConfig = async (
     { find: new RegExp(`^[/]?${ENV_PUBLIC_PATH}`), replacement: ENV_ENTRY },
   ]
 
+  const cacheDir = config.cacheDir
+    ? path.resolve(resolveRoot, config.cacheDir)
+    : path.resolve(resolveRoot, 'node_modules/.vite')
+
   const resolved: ResolvedConfig = {
     ...config,
     mode,
+    cacheDir,
     root: resolveRoot,
     plugins: [],
     env: {

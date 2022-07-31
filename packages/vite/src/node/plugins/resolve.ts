@@ -8,6 +8,7 @@ import {
   isFileReadable,
   isAbsolutePath,
   isDataUrl,
+  nestedResolveFrom,
 } from '../utils'
 import path from 'node:path'
 import fs from 'node:fs'
@@ -20,6 +21,7 @@ import {
 import colors from 'picocolors'
 import { resolvePackageData } from '../package'
 import { resolve as _resolveExports } from 'resolve.exports'
+import { DepsOptimizer, optimizedDepInfoFromId } from '../optimizer'
 
 /**
  * resolve plugin 外部配置
@@ -41,6 +43,11 @@ export interface ResolveOptions {
    * 解析 exports 字段时的条件
    */
   conditions?: string[]
+
+  /**
+   * 获取预构建解析器
+   */
+  getDepsOptimizer?: () => DepsOptimizer | undefined
 }
 
 /**
@@ -81,7 +88,7 @@ const idToPkgMap: Map<string, PackageData> = new Map()
 const debug = createDebugger('vite:resolve-details')
 
 export const resolvePlugin = (options: InternalResolveOptions): Plugin => {
-  const { root } = options
+  const { root, getDepsOptimizer } = options
 
   return {
     name: 'vite:resolve',
@@ -96,6 +103,9 @@ export const resolvePlugin = (options: InternalResolveOptions): Plugin => {
       if (isDataUrl(id)) {
         return null
       }
+
+      // 获取预构建解析器
+      const depsOptimizer = getDepsOptimizer?.()
 
       // 标明 web 环境
       options.targetWeb = true
@@ -120,10 +130,8 @@ export const resolvePlugin = (options: InternalResolveOptions): Plugin => {
       if (id.startsWith('.')) {
         // 父目录
         const dir = importer ? path.dirname(importer) : process.cwd()
-        console.log(`父目录是: ${importer} -> dir`)
         // 父目录 + id -> id 的绝对路径
         const fsPath = path.resolve(dir, id)
-        console.log(`解析相对路径: ${id}; dir: ${dir}; fsPath: ${fsPath}`)
         // 解析 id 的绝对路径是否存在
         if ((res = tryFsResolve(fsPath, options))) {
           // 如果一个相对路径是从 package 中导入引用的，那么会将这个 package 中所有导入的相对路径都存入 idToPkgMap 中
@@ -146,6 +154,11 @@ export const resolvePlugin = (options: InternalResolveOptions): Plugin => {
 
       // 解析模块
       if (bareImportRE.test(id)) {
+        // 查找是否在预构建中
+        if (depsOptimizer && (res = tryOptimizedResovle(id, depsOptimizer))) {
+          return res
+        }
+
         // 先查看模块是否在 browser 中
         if (
           options.targetWeb &&
@@ -258,7 +271,9 @@ export const tryNodeResolve = (
   importer: string | undefined,
   options: InternalResolveOptions
 ) => {
-  const basedir = importer ? path.dirname(importer) : process.cwd()
+  const lastArrowIndex = moduleName.lastIndexOf('>')
+  const nestedRoot = moduleName.substring(0, lastArrowIndex).trim()
+  const nestedPath = moduleName.substring(lastArrowIndex + 1).trim()
 
   // 可能需要解析的模块列表；顺序是从大到小
   // import slicedToArray from '@babel/runtime/helpers/esm/slicedToArray'
@@ -270,13 +285,13 @@ export const tryNodeResolve = (
   let preSlashIndex = -1
   while (preSlashIndex) {
     // 1. 查找第一个 / 并截取
-    let slashIndex = moduleName.indexOf('/', preSlashIndex + 1)
+    let slashIndex = nestedPath.indexOf('/', preSlashIndex + 1)
 
     if (slashIndex < 0) {
-      slashIndex = moduleName.length
+      slashIndex = nestedPath.length
     }
 
-    const part = moduleName.slice(
+    const part = nestedPath.slice(
       preSlashIndex + 1,
       (preSlashIndex = slashIndex)
     )
@@ -289,8 +304,14 @@ export const tryNodeResolve = (
       continue
     }
 
-    const path = moduleName.slice(0, slashIndex)
+    const path = nestedPath.slice(0, slashIndex)
     possiblePkgIds.push(path)
+  }
+
+  let basedir: string
+  basedir = importer ? path.dirname(importer) : process.cwd()
+  if (nestedRoot) {
+    basedir = nestedResolveFrom(nestedRoot, basedir)
   }
 
   // 解析每一个可能需要解析的模块，可能其中存在不正确的模块，所以 resolvePackageData 需要处理错误
@@ -306,11 +327,11 @@ export const tryNodeResolve = (
   }
 
   // 是否是嵌套导入
-  const isDeepImport = pkgId !== moduleName
+  const isDeepImport = pkgId !== nestedPath
   let entryPath: string | undefined
   if (isDeepImport) {
     // 解析嵌套导入的入口文件
-    entryPath = resolveDeepImport(moduleName.slice(pkgId!.length), pkg, options)
+    entryPath = resolveDeepImport(nestedPath.slice(pkgId!.length), pkg, options)
   } else {
     // 解析入口文件
     entryPath = resolvePackageEntry(pkgId!, pkg, options)
@@ -524,5 +545,21 @@ export const tryResolveBrowserMapping = (
   // id 在 web 环境中不需要，直接返回 browserExternalId 表示这是一个外链
   if (browserPath === false) {
     return browserExternalId
+  }
+}
+
+/**
+ * 尝试解析 id 是否在预构建中
+ */
+const tryOptimizedResovle = (
+  id: string,
+  depsOptimizer: DepsOptimizer
+): string | undefined => {
+  const { getOptimizedDepId, metadata } = depsOptimizer
+  const depInfo = optimizedDepInfoFromId(id, metadata)
+  const res = getOptimizedDepId(depInfo)
+
+  if (res) {
+    return res
   }
 }

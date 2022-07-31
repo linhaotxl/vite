@@ -1,10 +1,14 @@
-import fs from 'fs'
+import fs, { promises as fsp } from 'fs'
 import path from 'path'
 import debug from 'debug'
 import os from 'os'
 import resolve from 'resolve'
 import { URL } from 'node:url'
-import { DEFAULT_EXTENSIONS, VALID_ID_PREFIX } from './constants'
+import {
+  DEFAULT_EXTENSIONS,
+  OptimizableEntryRE,
+  VALID_ID_PREFIX,
+} from './constants'
 import { AliasOptions } from 'types/alias'
 import { Alias } from '@rollup/plugin-alias'
 
@@ -194,6 +198,22 @@ export const resolveForm = (id: string, basedir: string) =>
     preserveSymlinks: false,
   })
 
+/**
+ * 嵌套加载第三方模块路径
+ * 'foo > bar > qux'
+ */
+export const nestedResolveFrom = (pkgs: string | string[], basedir: string) => {
+  // 解析 qux 必须从 bar 所在目录开始查找，如果直接在 foo 目录查找是不存在的
+  const resolvePkgs = isArray(pkgs)
+    ? pkgs
+    : pkgs.split('>').map(pkgName => pkgName.trim())
+
+  for (const pkg of resolvePkgs) {
+    basedir = resolveForm(pkg, basedir)
+  }
+  return basedir
+}
+
 export const bareImportRE = /^[@\w](.*)/
 
 /**
@@ -238,6 +258,14 @@ const SPECIAL_QUERY_RE = /[?&](raw)/
 export const isSpecialQuery = (url: string) => SPECIAL_QUERY_RE.test(url)
 
 /**
+ *
+ */
+export const htmlTypesRE = /\.(html|vue)$/
+
+export const virtualModuleRE = /^virtural-module:.*/
+export const virturalModulePrefix = 'virtural-module:'
+
+/**
  * 异步 String.prototype.replace
  */
 export const asyncReplace = async (
@@ -267,3 +295,43 @@ export const isAbsolutePath = (path: string) => {
   }
   return windowsDrivePathPrefixRE.test(path)
 }
+
+/**
+ * 清空目录
+ */
+export const emptyDir = (dir: string, skip?: string[]) => {
+  for (const file of fs.readdirSync(dir)) {
+    if (skip?.includes(file)) {
+      continue
+    }
+    fs.rmSync(path.resolve(dir, file), { recursive: true, force: true })
+  }
+}
+
+/**
+ * 写入文件
+ */
+export const asyncWriteFile = async (
+  file: string,
+  content: string,
+  options?: fs.WriteFileOptions
+) => {
+  const dir = path.dirname(file)
+  if (!fs.existsSync(dir)) {
+    await fsp.mkdir(dir, { recursive: true })
+  }
+  await fsp.writeFile(file, content, options)
+}
+
+export const flattenId = (id: string) =>
+  id
+    .replace(/[/:]/g, '_')
+    .replace(/\./g, '__')
+    .replace(/\s*>\s*/, '___')
+
+export const normalizeId = (id: string) => id.replace(/\s*>\s*/, ' > ')
+
+/**
+ * 检查资源是否可以被预构建
+ */
+export const isOptimizable = (id: string) => OptimizableEntryRE.test(id)

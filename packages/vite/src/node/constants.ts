@@ -45,3 +45,6 @@ export const CLIENT_ENTRY = path.resolve(
 export const ENV_PUBLIC_PATH = '@vite/env'
 // client.mjs 实际路径
 export const ENV_ENTRY = path.resolve(__dirname, '../..', 'dist/client/env.mjs')
+
+// 可以被预构建的资源
+export const OptimizableEntryRE = /\.(js|mjs|cjs|ts|tjs|mts)$/
