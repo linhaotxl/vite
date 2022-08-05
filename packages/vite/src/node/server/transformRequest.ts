@@ -13,7 +13,7 @@ export const transformRequest = async (url: string, server: ViteDevServer) => {
   // 1. resolve
   const resolveId = (await pluginContainer.resolveId(url))?.id ?? url
 
-  return await loadAndTransform(resolveId, server)
+  return await loadAndTransform(resolveId, url, server)
 }
 
 /**
@@ -21,6 +21,7 @@ export const transformRequest = async (url: string, server: ViteDevServer) => {
  */
 export const loadAndTransform = async (
   resolveId: string,
+  url: string,
   server: ViteDevServer
 ) => {
   const { pluginContainer } = server
@@ -43,6 +44,9 @@ export const loadAndTransform = async (
       code = loadResult.code
     }
   }
+
+  // 在 transform 之前必须确保对应的 module 存在
+  await server.moduleGraph.ensureEntryFromUrl(url)
 
   // 3. transform
   const transformResult = await pluginContainer.transform(code, resolveId)
