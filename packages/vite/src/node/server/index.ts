@@ -17,6 +17,9 @@ import {
   serveStaticMiddleware,
 } from '../middlewares/static'
 
+// import { createDepsOptimizer } from '../optimizer/optimizer'
+import { ModuleGraph } from './moduleGraph'
+
 /**
  * vite 服务器选项
  */
@@ -45,6 +48,11 @@ export interface ViteDevServer {
    * 插件容器
    */
   pluginContainer: PluginContainer
+
+  /**
+   * 模块图
+   */
+  moduleGraph: ModuleGraph
 }
 
 /**
@@ -100,10 +108,20 @@ export const createServer = async (inlineConfig: InlineConfig) => {
     config,
     httpServer,
     pluginContainer,
-    listen(port) {
-      return startServer(server, port)
+    async listen(port) {
+      // await createDepsOptimizer(config)
+      const res = await startServer(server, port)
+      return res
     },
     transformIndexHtml: null!,
+    moduleGraph: new ModuleGraph(async id => pluginContainer.resolveId(id)),
+  }
+
+  // 运行 plugin 的 configureServer 钩子
+  for (const plugin of config.plugins) {
+    if (plugin.configureServer) {
+      plugin.configureServer(server)
+    }
   }
 
   server.transformIndexHtml = createDevHtmlTransformFn(server)

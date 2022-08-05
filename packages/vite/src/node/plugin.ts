@@ -9,6 +9,9 @@ import type {
   TransformPluginContext,
   ResolveIdHook,
 } from 'rollup'
+import type { ViteDevServer } from './server'
+
+export type ServerHook = (server: ViteDevServer) => void
 
 export interface Plugin extends RollupPlugin {
   /**
@@ -27,6 +30,11 @@ export interface Plugin extends RollupPlugin {
    * 每个插件可以存在转换 html 的钩子
    */
   indexTransform?: IndexHtmlTransform
+
+  /**
+   * 配置好 dev server 是的钩子
+   */
+  configureServer?: ServerHook
 
   /**
    * 解析模块路径
