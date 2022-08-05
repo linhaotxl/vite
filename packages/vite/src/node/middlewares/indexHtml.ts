@@ -139,7 +139,7 @@ export const devIndexHtml: IndexHtmlTransformHook = async (
         tag: 'script',
         attrs: {
           type: 'module',
-          src: CLIENT_PUBLIC_PATH,
+          src: `/${CLIENT_PUBLIC_PATH}`,
         },
         injectTo: 'head-prepend',
       },
