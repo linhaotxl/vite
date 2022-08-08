@@ -1,3 +1,4 @@
+import { isArray } from './../utils'
 import { createDevHtmlTransformFn } from './../middlewares/indexHtml'
 import connect from 'connect'
 import type { Server as HttpServer } from 'node:http'
@@ -19,6 +20,8 @@ import {
 
 // import { createDepsOptimizer } from '../optimizer/optimizer'
 import { ModuleGraph } from './moduleGraph'
+import chokidar from 'chokidar'
+import type { WatchOptions, FSWatcher } from 'chokidar'
 
 /**
  * vite 服务器选项
@@ -53,12 +56,19 @@ export interface ViteDevServer {
    * 模块图
    */
   moduleGraph: ModuleGraph
+
+  /**
+   * 文件监听器
+   */
+  watcher: FSWatcher
 }
 
 /**
  * 用户自定义服务器配置
  */
-export type ServerOptions = CommonServerOptions
+export type ServerOptions = {
+  watch?: WatchOptions
+} & CommonServerOptions
 
 /**
  * 解析好的服务器 server 配置
@@ -88,6 +98,18 @@ export const createServer = async (inlineConfig: InlineConfig) => {
   // 1. 解析配置
   const config = await resolveConfig(inlineConfig, 'serve', 'development')
 
+  const {
+    server: { watch: { ignored = [] } = {} },
+  } = config
+
+  // 创建文件监听器
+  const watcher = chokidar.watch(config.root, {
+    ignored: [
+      '**/node_modules/**',
+      ...(isArray(ignored) ? ignored : [ignored]),
+    ],
+  })
+
   // 创建中间件服务
   const middlewares = connect()
 
@@ -106,6 +128,7 @@ export const createServer = async (inlineConfig: InlineConfig) => {
 
   const server: ViteDevServer = {
     config,
+    watcher,
     httpServer,
     pluginContainer,
     async listen(port) {
